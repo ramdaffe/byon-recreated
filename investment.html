@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OCBC NISP — Investment (DashboardMenuActivity) — static prototype</title>
+<!--
+  Self-contained prototype. Tokens and shared chrome are also exported
+  to ../shared/ for reuse on future screens. See ../shared/SHARED.md.
+-->
+<style>
+  /* =========================================================
+     DESIGN TOKENS — canonical source: ../shared/tokens.css
+     Distilled from ocbc_apktool/res/values/{colors,dimens,styles}.xml
+     (1dp = 1px on this 360dp logical canvas; 1sp = 1px)
+     ========================================================= */
+  :root {
+    /* colors */
+    --red-primary:        #e30613;
+    --black-primary:      #202020;
+    --white-primary:      #ffffff;
+    --black-medium:       #80838b;   /* subtitle / date */
+    --gray-blush:         #d3d8e5;   /* separator */
+    --default-window-bg:  #ffffff;
+    --surface-soft:       #f6f8fa;   /* light green/gray info banner bg */
+    --positive-pill-bg:   #e8f6ee;   /* green pill bg */
+    --positive-pill-fg:   #1f9c5a;   /* green pill text */
+    --positive-icon-bg:   #2f7a4a;   /* product icon circle */
+    --pill-outline-fg:    #202020;
+
+    /* dimens (res/values/dimens.xml — selected) */
+    --space-0:    0px;
+    --space-half: 4px;
+    --space-1:    8px;
+    --space-2:    16px;
+    --space-3:    24px;
+    --space-4:    32px;
+    --size-1:     1px;
+    --size-36:    36px;             /* product icon circle */
+    --size-90:    90px;             /* cardCornerRadius for circular icon */
+
+    /* typography (from extracted styles) */
+    --font-family: "Fira Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --font-micro:   12px;           /* MicroText */
+    --font-mini:    14px;           /* MiniText */
+    --font-body:    16px;           /* BodyText */
+    --font-subhead: 20px;           /* visual subheadline (closer to SubHeadlineText 24sp) */
+
+    /* derived */
+    --shadow-soft: 0 1px 2px rgba(0,0,0,.04);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 100%; }
+  body {
+    font-family: var(--font-family);
+    font-size: var(--font-body);
+    color: var(--black-primary);
+    background: #ececec;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 0;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* =========================================================
+     PHONE FRAME — 360dp × 800dp logical canvas
+     ========================================================= */
+  .phone {
+    width: 360px;
+    height: 800px;
+    background: var(--default-window-bg);
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 8px 28px rgba(0,0,0,.18);
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* =========================================================
+     STATUS BAR — generic Android row (shared across screens)
+     Left: time. Right: signal bars + wifi + battery + pct.
+     ========================================================= */
+  .status-bar {
+    height: 28px;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 14px;
+    font-size: 11px;
+    color: var(--black-primary);
+    flex-shrink: 0;
+    position: relative;
+  }
+  .status-time {
+    font-weight: 600;
+    letter-spacing: .2px;
+    color: var(--black-primary);
+  }
+  .status-right {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    color: var(--black-primary);
+  }
+  .status-right .si-glyph {
+    width: 14px;
+    height: 12px;
+    color: var(--black-primary);
+  }
+  .status-right .si-pct {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--black-primary);
+    padding-left: 2px;
+  }
+
+  /* =========================================================
+     TOOLBAR — white bg, red back, black "Investment" title
+     (BaseToolbarActivity for this screen; matches ic_back_red)
+     ========================================================= */
+  .toolbar {
+    height: 48px;
+    background: #fff;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    border-bottom: 1px solid #f0f0f0;
+  }
+  .toolbar-back {
+    position: absolute;
+    left: 0; top: 0;
+    width: 40px; height: 100%;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--red-primary);
+  }
+  .toolbar-back svg { width: 24px; height: 24px; }
+  .toolbar-title {
+    font-size: var(--font-body);
+    font-weight: 700;
+    color: var(--black-primary);
+    text-align: center;
+  }
+
+  /* =========================================================
+     SCROLL BODY
+     ========================================================= */
+  .scroll {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    background: #fff;
+    position: relative;
+    min-height: 0;
+  }
+
+  /* ---------- "Product Picks for You" section header ---------- */
+  .section-head {
+    font-size: var(--font-subhead);
+    font-weight: 700;
+    color: var(--black-primary);
+    padding: 16px 16px 12px 16px;
+  }
+  .section-head.tight { padding-top: 8px; padding-bottom: 8px; }
+
+  /* ---------- product picks grid (2 rows × 3 cols) ---------- */
+  .picks {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: 96px 96px;
+    gap: 4px;
+    padding: 0 8px 8px 8px;
+  }
+  .pick {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 8px 6px;
+    color: var(--black-primary);
+    text-decoration: none;
+    text-align: center;
+  }
+  .pick .icon {
+    width: 48px; height: 48px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .pick .icon svg { width: 100%; height: 100%; }
+  .pick .label {
+    font-size: var(--font-mini);
+    line-height: 1.2;
+    color: var(--black-medium);
+  }
+
+  /* ---------- "For Your Investment" subhead + date ---------- */
+  .subhead-block {
+    padding: 16px 16px 4px 16px;
+  }
+  .subhead-block h2 {
+    font-size: var(--font-subhead);
+    font-weight: 700;
+    color: var(--black-primary);
+  }
+  .subhead-block .date {
+    margin-top: 4px;
+    font-size: var(--font-mini);
+    color: var(--black-medium);
+  }
+
+  /* ---------- 3-pill chip selector (horizontally scrollable) -- */
+  .chips {
+    display: flex;
+    gap: 8px;
+    padding: 12px 16px 8px 16px;
+    flex-wrap: nowrap;
+  }
+  .chip {
+    flex: 0 0 auto;
+    padding: 8px 12px;
+    border-radius: 100px;
+    border: 1px solid var(--gray-blush);
+    color: var(--pill-outline-fg);
+    background: #fff;
+    font-size: var(--font-micro);
+    font-weight: 500;
+    white-space: nowrap;
+    text-decoration: none;
+    text-align: center;
+  }
+  .chip.active {
+    background: var(--red-primary);
+    border-color: var(--red-primary);
+    color: #fff;
+    font-weight: 600;
+  }
+
+  /* ---------- info banner ("Based on product performance...") -- */
+  .info-banner {
+    margin: 12px 16px 0 16px;
+    background: var(--surface-soft);
+    border-radius: 8px;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .info-banner .bulb {
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    background: #f1d28a;
+    color: #a07708;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .info-banner .bulb svg { width: 16px; height: 16px; }
+  .info-banner .text {
+    font-size: var(--font-mini);
+    color: var(--black-primary);
+  }
+
+  /* ---------- product list (view_investment_product cards) ----- */
+  .product-list {
+    margin-top: 4px;
+  }
+  .product-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    position: relative;
+  }
+  .product-card .icon {
+    width: var(--size-36);
+    height: var(--size-36);
+    border-radius: 50%;
+    background: var(--positive-icon-bg);
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff;
+    position: relative;
+    overflow: hidden;
+  }
+  .product-card .icon svg { width: 22px; height: 22px; color: rgba(255,255,255,.85); }
+  .product-card .desc {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .product-card .desc .title {
+    font-size: var(--font-mini);
+    font-weight: 700;
+    color: var(--black-primary);
+    line-height: 1.2;
+  }
+  .product-card .desc .subtitle {
+    font-size: var(--font-micro);
+    color: var(--black-medium);
+    margin-top: 2px;
+  }
+  .product-card .perf {
+    flex: 0 0 auto;
+    background: var(--positive-pill-bg);
+    color: var(--positive-pill-fg);
+    border-radius: 100px;
+    padding: 4px 10px;
+    font-size: var(--font-mini);
+    font-weight: 600;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+  }
+  .product-card .perf svg { width: 12px; height: 12px; }
+  .product-card .perf .slash { color: var(--positive-pill-fg); opacity: .6; font-weight: 400; margin-left: 1px; }
+  .product-card .sep {
+    position: absolute;
+    left: 16px; right: 16px; bottom: 0;
+    height: 1px;
+    background: var(--gray-blush);
+  }
+  .product-card:last-child .sep { display: none; }
+
+  /* ---------- "Check & Plan Your Goals" header ---------------- */
+  .bottom-head {
+    padding: 20px 16px 28px 16px;
+    font-size: var(--font-subhead);
+    font-weight: 700;
+    color: var(--black-primary);
+  }
+
+  /* =========================================================
+     HOME INDICATOR
+     ========================================================= */
+  .home-indicator {
+    position: absolute;
+    left: 50%; bottom: 6px;
+    transform: translateX(-50%);
+    width: 134px; height: 4px;
+    background: rgba(0,0,0,.25);
+    border-radius: 2px;
+    pointer-events: none;
+  }
+</style>
+
+  <!-- =========================================================
+       HOSTED-PROTOTYPE WRAPPER — added by prototype/wire-links.py
+       Desktop: 360px phone centered on a neutral page bg.
+       Mobile (≤ 480px): phone fills the screen up to 360px
+       and the page scrolls vertically.
+       ========================================================= -->
+  <style>
+    html, body {
+      background: #ececec;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      width: 360px;
+      margin: 0 auto;
+      display: block;
+    }
+    .phone {
+      width: 360px;
+      height: auto;
+      min-height: 800px;
+    }
+    @media (max-width: 480px) {
+      html, body {
+        background: #fff;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        width: 100vw;
+        max-width: 360px;
+        margin: 0 auto;
+      }
+      .phone {
+        width: 100%;
+        max-width: 360px;
+        box-shadow: none;
+        border-radius: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="phone" role="application" aria-label="OCBC NISP investment overview prototype">
+
+    <!-- status bar (generic) -->
+    <div class="status-bar" aria-hidden="true">
+      <span class="status-time">10:01</span>
+      <div class="status-right">
+        <svg class="si-glyph" viewBox="0 0 14 12" aria-hidden="true">
+          <rect x="0"  y="8" width="2" height="4"  fill="currentColor"/>
+          <rect x="4"  y="5" width="2" height="7"  fill="currentColor"/>
+          <rect x="8"  y="2" width="2" height="10" fill="currentColor"/>
+          <rect x="12" y="0" width="2" height="12" fill="currentColor"/>
+        </svg>
+        <svg class="si-glyph" viewBox="0 0 14 12" aria-hidden="true">
+          <path d="M7 11a1.4 1.4 0 100-2.8 1.4 1.4 0 000 2.8zM2.8 6.5a6 6 0 018.4 0l-1 1a4.6 4.6 0 00-6.4 0l-1-1zM.6 4.2a9.2 9.2 0 0112.8 0l-1 1a7.8 7.8 0 00-10.8 0l-1-1z" fill="currentColor"/>
+        </svg>
+        <svg class="si-glyph" viewBox="0 0 22 12" aria-hidden="true">
+          <rect x="0" y="0" width="18" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="1.2"/>
+          <rect x="2" y="2" width="12" height="8"  fill="currentColor"/>
+          <rect x="19" y="3.5" width="2" height="5" rx="0.5" fill="currentColor"/>
+        </svg>
+        <span class="si-pct">73</span>
+      </div>
+    </div>
+
+    <!-- toolbar (white, red back, center "Investment") -->
+    <header class="toolbar">
+      <a class="toolbar-back" href="dashboard.html" aria-label="Back">
+        <!-- ic_back_red vector (mirrored, but back uses the standard direction) -->
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path fill="currentColor" fill-rule="evenodd"
+            d="M3.9 11.365L9.616 5.72a1.58 1.58 0 000-2.248 1.625 1.625 0 00-2.293 0l-6.845 6.76a1.585 1.585 0 000 2.265l6.845 6.84c.305.299.717.465 1.146.463.43.002.842-.164 1.147-.462a1.58 1.58 0 000-2.249L3.9 11.365z"/>
+        </svg>
+      </a>
+      <div class="toolbar-title">Investment</div>
+    </header>
+
+    <!-- scroll body -->
+    <main class="scroll">
+
+      <!-- Product Picks for You -->
+      <h1 class="section-head">Product Picks for You</h1>
+      <nav class="picks" aria-label="Product picks">
+        <a class="pick" href="#">
+          <span class="icon">
+            <!-- Mutual Funds: hands holding coin (Rp) -->
+            <svg viewBox="0 0 48 48" aria-hidden="true">
+              <circle cx="14" cy="38" r="6" fill="#cfd3d9"/>
+              <circle cx="34" cy="38" r="6" fill="#cfd3d9"/>
+              <path d="M12 18 L12 36 Q12 38 14 38 L18 38 Q20 38 20 36 L20 18 Z" fill="#a9b1bb"/>
+              <path d="M28 18 L28 36 Q28 38 30 38 L34 38 Q36 38 36 36 L36 18 Z" fill="#a9b1bb"/>
+              <circle cx="24" cy="14" r="9" fill="#ffd34d" stroke="#f0a800" stroke-width="1.2"/>
+              <text x="24" y="17.5" text-anchor="middle" font-size="9" font-weight="800" fill="#a07708" font-family="sans-serif">Rp</text>
+              <g fill="#ffd34d">
+                <circle cx="40" cy="10" r="1.2"/><circle cx="8" cy="8" r="1"/>
+                <circle cx="6" cy="18" r="0.8"/><circle cx="42" cy="22" r="0.9"/>
+              </g>
+            </svg>
+          </span>
+          <span class="label">Mutual Funds</span>
+        </a>
+        <a class="pick" href="#">
+          <span class="icon">
+            <!-- Secondary Bonds: certificate with seal -->
+            <svg viewBox="0 0 48 48" aria-hidden="true">
+              <rect x="8" y="10" width="32" height="24" rx="2" fill="#cfd3d9" stroke="#7e8694" stroke-width="1.2"/>
+              <rect x="11" y="13" width="26" height="2" fill="#7e8694"/>
+              <rect x="11" y="18" width="20" height="1.5" fill="#7e8694"/>
+              <rect x="11" y="22" width="22" height="1.5" fill="#7e8694"/>
+              <rect x="11" y="26" width="14" height="1.5" fill="#7e8694"/>
+              <circle cx="34" cy="32" r="7" fill="#e30613"/>
+              <circle cx="34" cy="32" r="3" fill="#ffd34d"/>
+            </svg>
+          </span>
+          <span class="label">Secondary<br>Bonds</span>
+        </a>
+        <a class="pick" href="#">
+          <span class="icon">
+            <!-- Retail SBN: building/temple -->
+            <svg viewBox="0 0 48 48" aria-hidden="true">
+              <path d="M6 22 L24 10 L42 22 L42 40 L6 40 Z" fill="#cfd3d9" stroke="#7e8694" stroke-width="1.2"/>
+              <rect x="9" y="24" width="6" height="14" fill="#7e8694"/>
+              <rect x="21" y="24" width="6" height="14" fill="#7e8694"/>
+              <rect x="33" y="24" width="6" height="14" fill="#7e8694"/>
+              <rect x="10" y="26" width="4" height="3" fill="#fff"/>
+              <rect x="22" y="26" width="4" height="3" fill="#fff"/>
+              <rect x="34" y="26" width="4" height="3" fill="#fff"/>
+              <circle cx="38" cy="36" r="7" fill="#e30613"/>
+              <circle cx="38" cy="36" r="3" fill="#ffd34d"/>
+            </svg>
+          </span>
+          <span class="label">Retail SBN</span>
+        </a>
+        <a class="pick" href="#">
+          <span class="icon">
+            <!-- Gold: gold bars with sparkles -->
+            <svg viewBox="0 0 48 48" aria-hidden="true">
+              <path d="M8 30 L14 22 L26 22 L30 30 L30 38 L8 38 Z" fill="#f5c518" stroke="#a07708" stroke-width="1.2"/>
+              <path d="M28 30 L34 22 L40 22 L44 30 L44 38 L28 38 Z" fill="#f5c518" stroke="#a07708" stroke-width="1.2"/>
+              <path d="M16 22 L20 16 L26 22 Z" fill="#ffd34d"/>
+              <text x="20" y="33" text-anchor="middle" font-size="6" font-weight="800" fill="#a07708" font-family="sans-serif">GOLD</text>
+              <g fill="#ffd34d">
+                <circle cx="10" cy="10" r="1.4"/><circle cx="40" cy="8" r="1.2"/>
+                <circle cx="6" cy="20" r="0.9"/><circle cx="42" cy="18" r="0.9"/>
+              </g>
+            </svg>
+          </span>
+          <span class="label">Gold</span>
+        </a>
+        <a class="pick" href="#">
+          <span class="icon">
+            <!-- Insurance: umbrella + shield -->
+            <svg viewBox="0 0 48 48" aria-hidden="true">
+              <path d="M8 24 Q24 6 40 24 Z" fill="#e30613"/>
+              <path d="M8 24 L40 24" stroke="#7e0d12" stroke-width="1.2"/>
+              <path d="M22 24 Q24 18 26 24" fill="#e30613"/>
+              <rect x="22" y="24" width="4" height="14" fill="#7e0d12"/>
+              <path d="M30 30 L30 38 Q36 38 36 32 Z" fill="#2f7a4a"/>
+              <path d="M32 33 L34 35 L37 31" stroke="#fff" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+            </svg>
+          </span>
+          <span class="label">Insurance</span>
+        </a>
+        <span class="pick" aria-hidden="true"></span>
+      </nav>
+
+      <!-- For Your Investment -->
+      <div class="subhead-block">
+        <h2>For Your Investment</h2>
+        <div class="date">Based on 20 Jun 2026 • 15:00 WIB</div>
+      </div>
+
+      <!-- 3-pill chips -->
+      <div class="chips" role="tablist">
+        <a class="chip active" href="#" role="tab" aria-selected="true">Selected Products</a>
+        <a class="chip" href="#" role="tab" aria-selected="false">Trending</a>
+        <a class="chip" href="#" role="tab" aria-selected="false">Matched Your</a>
+      </div>
+
+      <!-- info banner -->
+      <div class="info-banner">
+        <span class="bulb" aria-hidden="true">
+          <svg viewBox="0 0 16 16">
+            <path d="M8 1a4 4 0 00-3 6.7V10a1 1 0 001 1h4a1 1 0 001-1V7.7A4 4 0 008 1zM6 12.5h4v.5a1 1 0 01-1 1H7a1 1 0 01-1-1v-.5z" fill="currentColor"/>
+          </svg>
+        </span>
+        <span class="text">Based on product performance history.</span>
+      </div>
+
+      <!-- product list (view_investment_product cards) -->
+      <div class="product-list">
+        <div class="product-card">
+          <span class="icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <path d="M5 5h14v14H5z" fill="none" stroke="currentColor" stroke-width="1.6"/>
+              <path d="M8 5v14M5 8h14M5 12h14M5 16h14" stroke="currentColor" stroke-width="1.2"/>
+            </svg>
+          </span>
+          <div class="desc">
+            <div class="title">MANULIFE SAHAM SYARIAH ASIA PASIFIK DOLL</div>
+            <div class="subtitle">Equity Fund</div>
+          </div>
+          <span class="perf">
+            <svg viewBox="0 0 12 12" aria-hidden="true">
+              <path d="M2 9 L6 5 L9 8 L11 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M8 4 L11 4 L11 7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            90.29%
+            <span class="slash">/1 year</span>
+          </span>
+          <span class="sep"></span>
+        </div>
+
+        <div class="product-card">
+          <span class="icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <path d="M5 5h14v14H5z" fill="none" stroke="currentColor" stroke-width="1.6"/>
+              <path d="M5 5l14 14M19 5L5 19" stroke="currentColor" stroke-width="1.2"/>
+            </svg>
+          </span>
+          <div class="desc">
+            <div class="title">BNP PARIBAS GREATER CHINA EQ SYARIAH USD</div>
+            <div class="subtitle">Equity Fund</div>
+          </div>
+          <span class="perf">
+            <svg viewBox="0 0 12 12" aria-hidden="true">
+              <path d="M2 9 L6 5 L9 8 L11 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M8 4 L11 4 L11 7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            41.36%
+            <span class="slash">/1 year</span>
+          </span>
+          <span class="sep"></span>
+        </div>
+
+        <div class="product-card">
+          <span class="icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <path d="M5 5h14v14H5z" fill="none" stroke="currentColor" stroke-width="1.6"/>
+              <path d="M5 5l14 14M19 5L5 19" stroke="currentColor" stroke-width="1.2"/>
+            </svg>
+          </span>
+          <div class="desc">
+            <div class="title">BNP PARIBAS DJIM GTT 50 SYARIAH USD</div>
+            <div class="subtitle">Equity Fund</div>
+          </div>
+          <span class="perf">
+            <svg viewBox="0 0 12 12" aria-hidden="true">
+              <path d="M2 9 L6 5 L9 8 L11 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M8 4 L11 4 L11 7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            40.57%
+            <span class="slash">/1 year</span>
+          </span>
+          <span class="sep"></span>
+        </div>
+      </div>
+
+      <!-- Check & Plan Your Goals -->
+      <h2 class="bottom-head">Check &amp; Plan Your Goals</h2>
+    </main>
+
+    <div class="home-indicator" aria-hidden="true"></div>
+  </div>
+</body>
+</html>

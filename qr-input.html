@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OCBC NISP — QR Input (Pay To) — static prototype</title>
+<!--
+  Self-contained prototype. Tokens and shared chrome are also exported
+  to ../shared/ for reuse on future screens. See SHARED.md.
+
+  Source: screenshot/QR-input-CNY.jpg
+  Activity: PurchaseLandingPageActivity
+    (com.ocbcnisp.byon.purchase.ui.PurchaseLandingPageActivity)
+  Layout:   purchase_amount_fragment.xml (hosted by BaseToolbarActivity)
+  Flow:     VisionScanActivity (QR scan) -> on success
+            m4() -> PurchaseLandingPageActivity with
+                    purchaseFlow = PURCHASE_QRIS_SELECT_AMOUNT
+            -> fragment Se/j (purchase_amount_fragment) shows "Pay To"
+               with biller card + amount input.
+
+  System keyboard is intentionally omitted (per user note).
+-->
+<style>
+  :root {
+    --red-primary:        #e30613;
+    --red-dark:           #ba1c18;
+    --black-primary:      #202020;
+    --white-primary:      #ffffff;
+    --black-medium:       #80838b;
+    --gray-primary:       #bec3d0;
+    --gray-blush:         #eef0f4;
+    --default-window-bg:  #ffffff;
+
+    --space-0:  0px;
+    --space-half: 4px;
+    --space-1:  8px;
+    --space-1-5: 12px;
+    --space-2:  16px;
+    --space-3:  24px;
+    --space-4:  32px;
+
+    --size-1:  1px;
+    --size-2:  2px;
+    --size-44: 44px;     /* user avatar circle */
+    --size-48: 48px;     /* system-key key height */
+
+    --font-family: "Fira Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --font-micro:  12px;
+    --font-mini:   14px;
+    --font-body:   16px;
+    --font-head:   18px;
+    --font-amount: 32px;
+
+    --shadow-card: 0 2px 6px rgba(0,0,0,.10);
+    --shadow-card-lg: 0 6px 16px rgba(0,0,0,.12);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 100%; }
+  body {
+    font-family: var(--font-family);
+    font-size: var(--font-body);
+    color: var(--black-primary);
+    background: #ececec;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* =========================================================
+     PHONE FRAME — 360dp × 800dp
+     ========================================================= */
+  .phone {
+    width: 360px;
+    height: 800px;
+    background: var(--default-window-bg);
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 8px 28px rgba(0,0,0,.18);
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* =========================================================
+     STATUS BAR — generic shared chrome (see ../shared/chrome-status-bar.css)
+     Time = 15:52, battery = 45%.
+     ========================================================= */
+  .status-bar {
+    height: 28px;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 14px;
+    font-size: 11px;
+    color: var(--black-primary);
+    flex-shrink: 0;
+  }
+  .status-time { font-weight: 600; letter-spacing: .2px; }
+  .status-right { display: flex; align-items: center; gap: 5px; }
+  .status-right .si-glyph { width: 14px; height: 12px; color: var(--black-primary); }
+  .status-right .si-pct { font-size: 10px; font-weight: 600; padding-left: 2px; }
+
+  /* =========================================================
+     TOOLBAR (BaseToolbarActivity, white)
+     Red < back, centered "Pay To" title.
+     ========================================================= */
+  .toolbar {
+    height: 48px;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    flex-shrink: 0;
+    z-index: 3;
+  }
+  .toolbar .back {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 24px;
+    height: 24px;
+    color: var(--red-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+  }
+  .toolbar .title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--black-primary);
+  }
+
+  /* =========================================================
+     BODY (scrollable) — the purchase_select_amount container
+     ========================================================= */
+  .body {
+    flex: 1;
+    padding: 8px 16px 16px;
+    overflow-y: auto;
+    background: #fff;
+  }
+
+  /* biller card (id=biller_info) */
+  .biller-card {
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: var(--shadow-card);
+    padding: 16px 16px 18px;
+    margin-top: 8px;
+  }
+  .biller-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--gray-blush);
+  }
+  .biller-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--red-primary);
+    color: #fff;
+    font-size: 18px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .biller-name {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--black-primary);
+    letter-spacing: .3px;
+  }
+
+  /* amount row (id=amount_container inside open_amount_container) */
+  .amount-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    padding-top: 18px;
+  }
+  .amount-label {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--black-primary);
+    margin-bottom: 4px;
+    display: block;
+  }
+  .amount-left {
+    display: flex;
+    flex-direction: column;
+  }
+  .amount-ccy {
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--black-primary);
+    line-height: 24px;
+  }
+  .amount-right {
+    font-size: var(--font-amount);
+    font-weight: 700;
+    color: var(--black-primary);
+    letter-spacing: -.3px;
+    line-height: 1;
+  }
+
+  /* Continue button (id=btn_continue) */
+  .continue {
+    margin: 16px 0 8px;
+    width: 100%;
+    height: 52px;
+    background: linear-gradient(180deg, #ee2a30 0%, var(--red-primary) 100%);
+    color: #fff;
+    font-size: 16px;
+    font-weight: 700;
+    border: none;
+    border-radius: 26px;
+    box-shadow: 0 4px 10px rgba(227,6,19,.25);
+    cursor: pointer;
+  }
+  .continue a { color: #fff; text-decoration: none; display: block; line-height: 52px; }
+
+  /* =========================================================
+     KEYBOARD AREA (id=keyboard_view) — system custom keyboard
+     Per user note, the actual keys are omitted. We just show
+     the black keyboard "bar" so the screen reads as complete.
+     ========================================================= */
+  .keyboard {
+    background: #000;
+    flex-shrink: 0;
+    /* small visual stand-in (a black bar) — fills the rest of phone */
+    height: 0;
+  }
+
+  /* home indicator */
+  .home-bar {
+    position: absolute;
+    bottom: 4px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 96px;
+    height: 3px;
+    background: rgba(0,0,0,.25);
+    border-radius: 2px;
+  }
+</style>
+
+  <!-- =========================================================
+       HOSTED-PROTOTYPE WRAPPER — added by prototype/wire-links.py
+       Desktop: 360px phone centered on a neutral page bg.
+       Mobile (≤ 480px): phone fills the screen up to 360px
+       and the page scrolls vertically.
+       ========================================================= -->
+  <style>
+    html, body {
+      background: #ececec;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      width: 360px;
+      margin: 0 auto;
+      display: block;
+    }
+    .phone {
+      width: 360px;
+      height: auto;
+      min-height: 800px;
+    }
+    @media (max-width: 480px) {
+      html, body {
+        background: #fff;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        width: 100vw;
+        max-width: 360px;
+        margin: 0 auto;
+      }
+      .phone {
+        width: 100%;
+        max-width: 360px;
+        box-shadow: none;
+        border-radius: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+<div class="phone">
+
+  <!-- status bar (generic shared chrome — see ../shared/chrome-status-bar.html) -->
+  <div class="status-bar" aria-hidden="true">
+    <span class="status-time">15:52</span>
+    <div class="status-right">
+      <svg class="si-glyph" viewBox="0 0 14 12" aria-hidden="true">
+        <rect x="0"  y="8" width="2" height="4"  fill="currentColor"/>
+        <rect x="4"  y="5" width="2" height="7"  fill="currentColor"/>
+        <rect x="8"  y="2" width="2" height="10" fill="currentColor"/>
+        <rect x="12" y="0" width="2" height="12" fill="currentColor"/>
+      </svg>
+      <svg class="si-glyph" viewBox="0 0 14 12" aria-hidden="true">
+        <path d="M7 11a1.4 1.4 0 100-2.8 1.4 1.4 0 000 2.8zM2.8 6.5a6 6 0 018.4 0l-1 1a4.6 4.6 0 00-6.4 0l-1-1zM.6 4.2a9.2 9.2 0 0112.8 0l-1 1a7.8 7.8 0 00-10.8 0l-1-1z" fill="currentColor"/>
+      </svg>
+      <svg class="si-glyph" viewBox="0 0 22 12" aria-hidden="true">
+        <rect x="0" y="0" width="18" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="1.2"/>
+        <rect x="2" y="2" width="12" height="8"  fill="currentColor"/>
+        <rect x="19" y="3.5" width="2" height="5" rx="0.5" fill="currentColor"/>
+      </svg>
+      <span class="si-pct">45</span>
+    </div>
+  </div>
+
+  <!-- toolbar -->
+  <div class="toolbar">
+    <a href="qr-scan.html" class="back" aria-label="Back" style="text-decoration:none;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="15 18 9 12 15 6"/>
+      </svg>
+    </a>
+    <span class="title">Pay To</span>
+  </div>
+
+  <!-- body -->
+  <div class="body">
+    <!-- biller card (id=biller_info) -->
+    <div class="biller-card">
+      <div class="biller-header">
+        <span class="biller-avatar">C</span>
+        <span class="biller-name">CHINA</span>
+      </div>
+      <!-- open_amount_container (id) — Amount + currency + amount-input-edit-text -->
+      <div class="amount-row">
+        <div class="amount-left">
+          <span class="amount-label">Amount</span>
+          <span class="amount-ccy">CNY</span>
+        </div>
+        <div class="amount-right">1,000</div>
+      </div>
+    </div>
+
+    <!-- btn_continue -->
+    <button class="continue">
+      <a href="#">Continue</a>
+    </button>
+  </div>
+
+  <!-- placeholder for system keyboard (omitted per user) -->
+  <div class="keyboard"></div>
+
+  <div class="home-bar"></div>
+</div>
+</body>
+</html>

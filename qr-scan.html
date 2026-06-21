@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OCBC NISP — QR Scan — static prototype</title>
+<!--
+  Self-contained prototype. Tokens and shared chrome are also exported
+  to ../shared/ for reuse on future screens. See SHARED.md.
+
+  Source: screenshot/scan-QR.jpg
+  Activity: VisionScanActivity (com.ocbcnisp.byon.ui.visonscan.VisionScanActivity)
+  Layout:   fragment_scanner.xml + ocbc_apktool/res/drawable/{bg_spotlight_gradient, top_rounded_background,
+                                                              ic_flash_on_white, ic_gallery_white,
+                                                              ic_loco_qris_white, ic_qris_pay, ic_qris_transfer}
+
+  Camera preview simplified: black gradient + a single horizontal red
+  scanning line (mimicking the LottieAnimationView raw_animation_scanner).
+-->
+<style>
+  :root {
+    --red-primary:        #e30613;
+    --red-dark:           #ea2f2a;
+    --black-primary:      #202020;
+    --white-primary:      #ffffff;
+    --green-light:        #f2ffdf;
+    --black-medium:       #80838b;
+    --gray-primary:       #bec3d0;
+
+    --space-0:  0px;
+    --space-half: 4px;
+    --space-1:  8px;
+    --space-1-5: 12px;
+    --space-2:  16px;
+    --space-3:  24px;
+    --space-4:  32px;
+
+    --size-1:  1px;
+    --size-2:  2px;
+    --size-22: 22px;     /* tag_height */
+    --size-112: 112px;   /* ic_loco_qris_white width */
+
+    --font-family: "Fira Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --font-micro:  12px;
+    --font-body:   16px;
+
+    --shadow-card: 0 2px 6px rgba(0,0,0,.10);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 100%; }
+  body {
+    font-family: var(--font-family);
+    font-size: var(--font-body);
+    color: var(--black-primary);
+    background: #ececec;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* =========================================================
+     PHONE FRAME — 360dp × 800dp
+     ========================================================= */
+  .phone {
+    width: 360px;
+    height: 800px;
+    background: var(--white-primary);
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 8px 28px rgba(0,0,0,.18);
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* =========================================================
+     STATUS BAR — generic shared chrome (see ../shared/chrome-status-bar.css)
+     Time + signal/wifi/battery + percentage.
+     Scan page time = 15:42, battery = 39%.
+     ========================================================= */
+  .status-bar {
+    height: 28px;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 14px;
+    font-size: 11px;
+    color: var(--black-primary);
+    flex-shrink: 0;
+  }
+  .status-time { font-weight: 600; letter-spacing: .2px; }
+  .status-right { display: flex; align-items: center; gap: 5px; }
+  .status-right .si-glyph { width: 14px; height: 12px; color: var(--black-primary); }
+  .status-right .si-pct { font-size: 10px; font-weight: 600; padding-left: 2px; }
+
+  /* =========================================================
+     QRIS TITLE BAR (white, "QRIS" centered, × close on left)
+     ========================================================= */
+  .qr-title {
+    height: 48px;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 12px;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 3;
+  }
+  .qr-title .close {
+    width: 24px; height: 24px;
+    color: var(--black-primary);
+    cursor: pointer;
+  }
+  .qr-title .title {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--black-primary);
+  }
+
+  /* =========================================================
+     SCANNER CONTENT
+     Layout (top→bottom):
+       1. green tips strip
+       2. camera preview (black with horizontal red Lottie line)
+       3. utility row: Flash | QRIS logo | Gallery
+       4. bottom sheet (white card with top-rounded corners):
+          - "Scan QR or show Payment QR" label
+          - two CardView tiles: "Show QR" + "Receive Transfer"
+     ========================================================= */
+  .scanner {
+    flex: 1;
+    position: relative;
+    background: #000;
+    overflow: hidden;
+  }
+
+  /* green tips strip — top of fragment_scanner (id=top, bg=green_light).
+     Sits ABOVE the camera backdrop. */
+  .scanner > .top-tips {
+    position: relative;
+    z-index: 2;
+    background: var(--green-light);
+    padding: 10px 14px 12px;
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    color: var(--black-primary);
+  }
+  .top-tips .icon-wrap {
+    flex-shrink: 0;
+    width: 22px;
+    height: 22px;
+  }
+  .top-tips .icon-wrap svg { width: 100%; height: 100%; }
+  .top-tips .label {
+    font-size: 12px;
+    line-height: 16px;
+    font-weight: 700;
+  }
+
+  /* camera preview (id=preview_view + scanner lottie).
+     Sits behind everything except the top tips, fills the rest of .scanner. */
+  .cam {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+    background:
+      radial-gradient(ellipse 80% 60% at 50% 50%, rgba(60,30,15,.55) 0%, rgba(20,8,4,.85) 60%, #000 100%),
+      linear-gradient(180deg, #1a0a05 0%, #0a0503 100%);
+  }
+  .cam::before {
+    /* bottom vignette: matches bg_spotlight_gradient (black -> transparent) */
+    content: "";
+    position: absolute;
+    left: 0; right: 0;
+    bottom: 0;
+    height: 60%;
+    background: linear-gradient(0deg, #000 0%, rgba(0,0,0,0) 100%);
+    pointer-events: none;
+  }
+  .cam::after {
+    /* horizontal scanning line from raw_animation_scanner (red glow) */
+    content: "";
+    position: absolute;
+    left: 10%;
+    right: 10%;
+    top: 32%;
+    height: 4px;
+    background: linear-gradient(90deg,
+      rgba(227,6,19,0) 0%,
+      rgba(227,6,19,.6) 30%,
+      rgba(227,6,19,1) 50%,
+      rgba(227,6,19,.6) 70%,
+      rgba(227,6,19,0) 100%);
+    box-shadow:
+      0 0 8px 2px rgba(227,6,19,.5),
+      0 0 16px 4px rgba(227,6,19,.25);
+    border-radius: 2px;
+  }
+  /* dotted scan-grid pattern (faint) */
+  .cam-grid {
+    position: absolute;
+    left: 0; right: 0;
+    top: 8%;
+    height: 55%;
+    background-image:
+      linear-gradient(90deg, rgba(255,255,255,.05) 1px, transparent 1px);
+    background-size: 24px 100%;
+    pointer-events: none;
+  }
+
+  /* =========================================================
+     UTILITY ROW — Flash | QRIS logo | Gallery
+     ========================================================= */
+  .utility {
+    position: absolute;
+    left: 22px;
+    right: 22px;
+    bottom: 240px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 3;
+  }
+  .util-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    color: #fff;
+    min-width: 60px;
+  }
+  .util-btn .icon {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .util-btn .icon svg { width: 100%; height: 100%; }
+  .util-btn .label {
+    font-size: var(--font-micro);
+    font-weight: 700;
+    color: #fff;
+  }
+  .util-center .qris-logo {
+    width: 60px;
+    height: 23px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .util-center .qris-logo svg { width: 100%; height: 100%; }
+
+  /* =========================================================
+     BOTTOM SHEET (id=view_bottom_sheet) — top-rounded white card
+     ========================================================= */
+  .sheet {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: #fff;
+    border-top-left-radius: 32px;
+    border-top-right-radius: 32px;
+    padding: 14px 16px 24px;
+    z-index: 3;
+  }
+  .sheet .info {
+    text-align: center;
+    color: var(--black-medium);
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 18px;
+    margin: 4px 0 16px;
+  }
+  .tile-row {
+    display: flex;
+    gap: 16px;
+  }
+  .tile {
+    flex: 1;
+    background: #fff;
+    border: 1px solid #eef0f4;
+    border-radius: 8px;
+    padding: 18px 12px 14px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    box-shadow: 0 2px 6px rgba(0,0,0,.04);
+  }
+  .tile .tile-icon {
+    width: 40px;
+    height: 40px;
+    border: 1.5px solid var(--gray-primary);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .tile .tile-icon svg { width: 28px; height: 28px; }
+  .tile .tile-label {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--black-primary);
+  }
+  .tile.receive .tile-icon {
+    border: none;
+    background: transparent;
+  }
+  .tile.receive .tile-icon svg { width: 36px; height: 36px; }
+
+  /* home indicator (iOS-like) */
+  .home-bar {
+    position: absolute;
+    bottom: 6px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 96px;
+    height: 3px;
+    background: rgba(0,0,0,.25);
+    border-radius: 2px;
+  }
+</style>
+
+  <!-- =========================================================
+       HOSTED-PROTOTYPE WRAPPER — added by prototype/wire-links.py
+       Desktop: 360px phone centered on a neutral page bg.
+       Mobile (≤ 480px): phone fills the screen up to 360px
+       and the page scrolls vertically.
+       ========================================================= -->
+  <style>
+    html, body {
+      background: #ececec;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      width: 360px;
+      margin: 0 auto;
+      display: block;
+    }
+    .phone {
+      width: 360px;
+      height: auto;
+      min-height: 800px;
+    }
+    @media (max-width: 480px) {
+      html, body {
+        background: #fff;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        width: 100vw;
+        max-width: 360px;
+        margin: 0 auto;
+      }
+      .phone {
+        width: 100%;
+        max-width: 360px;
+        box-shadow: none;
+        border-radius: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+<div class="phone">
+
+  <!-- status bar (generic shared chrome — see ../shared/chrome-status-bar.html) -->
+  <div class="status-bar" aria-hidden="true">
+    <span class="status-time">15:42</span>
+    <div class="status-right">
+      <svg class="si-glyph" viewBox="0 0 14 12" aria-hidden="true">
+        <rect x="0"  y="8" width="2" height="4"  fill="currentColor"/>
+        <rect x="4"  y="5" width="2" height="7"  fill="currentColor"/>
+        <rect x="8"  y="2" width="2" height="10" fill="currentColor"/>
+        <rect x="12" y="0" width="2" height="12" fill="currentColor"/>
+      </svg>
+      <svg class="si-glyph" viewBox="0 0 14 12" aria-hidden="true">
+        <path d="M7 11a1.4 1.4 0 100-2.8 1.4 1.4 0 000 2.8zM2.8 6.5a6 6 0 018.4 0l-1 1a4.6 4.6 0 00-6.4 0l-1-1zM.6 4.2a9.2 9.2 0 0112.8 0l-1 1a7.8 7.8 0 00-10.8 0l-1-1z" fill="currentColor"/>
+      </svg>
+      <svg class="si-glyph" viewBox="0 0 22 12" aria-hidden="true">
+        <rect x="0" y="0" width="18" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="1.2"/>
+        <rect x="2" y="2" width="12" height="8"  fill="currentColor"/>
+        <rect x="19" y="3.5" width="2" height="5" rx="0.5" fill="currentColor"/>
+      </svg>
+      <span class="si-pct">39</span>
+    </div>
+  </div>
+
+  <!-- QRIS title bar -->
+  <div class="qr-title">
+    <a href="dashboard.html" class="close" aria-label="Close" style="text-decoration:none;display:flex;align-items:center;justify-content:center;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round">
+        <line x1="6"  y1="6"  x2="18" y2="18"/>
+        <line x1="18" y1="6"  x2="6"  y2="18"/>
+      </svg>
+    </a>
+    <span class="title">QRIS</span>
+  </div>
+
+  <!-- scanner content -->
+  <div class="scanner">
+
+    <div class="top-tips">
+      <span class="icon-wrap">
+        <!-- party popper icon (sized 24x24) -->
+        <svg viewBox="0 0 24 24" fill="none" stroke="#202020" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M5.8 11.3 2 22l10.7-3.79"/>
+          <path d="M4 3h.01"/>
+          <path d="M22 8h.01"/>
+          <path d="M15 2h.01"/>
+          <path d="M22 20h.01"/>
+          <path d="M22 2 9.5 14.5l4.5 4.5L22 11"/>
+          <path d="M9 11.5 7.5 13 4 9.5 5.5 8 9 11.5z"/>
+        </svg>
+      </span>
+      <span class="label">Enjoy QRIS payments in <b>China, South Korea, Japan, Thailand, Malaysia, &amp; Singapore!</b></span>
+    </div>
+
+    <!-- camera preview backdrop -->
+    <div class="cam">
+      <div class="cam-grid"></div>
+    </div>
+
+    <!-- utility row (Flash | QRIS logo | Gallery) -->
+    <div class="utility">
+      <a href="#" class="util-btn" style="text-decoration:none;">
+        <span class="icon">
+          <!-- ic_flash_on_white (24x24, white paths) -->
+          <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1" fill-rule="evenodd" clip-rule="evenodd">
+            <path d="M7.862,9C7.386,9 7,9.386 7,9.862C7,10.106 7.104,10.34 7.286,10.503L9.668,12.64C9.905,12.854 10.017,13.155 9.998,13.45C9.999,13.472 10,13.494 10,13.516V20C10,20.552 10.448,21 11,21H13C13.552,21 14,20.552 14,20V13.516C14,13.494 14.001,13.472 14.002,13.451C13.98,13.118 14.126,12.781 14.417,12.572L16.583,11.017C16.845,10.829 17,10.527 17,10.205V10C17,9.448 16.552,9 16,9H7.862ZM16,13.898L17.75,12.642C18.535,12.078 19,11.171 19,10.205V10C19,8.343 17.657,7 16,7H7.862C6.281,7 5,8.281 5,9.862C5,10.674 5.346,11.449 5.95,11.991L8,13.831V20C8,21.657 9.343,23 11,23H13C14.657,23 16,21.657 16,20V13.898Z" fill="#fff"/>
+            <path d="M12.426,1C12.978,1 13.426,1.448 13.426,2V3.859C13.426,4.412 12.978,4.859 12.426,4.859C11.874,4.859 11.426,4.412 11.426,3.859V2C11.426,1.448 11.874,1 12.426,1ZM7.293,2.374C7.683,1.983 8.317,1.983 8.707,2.374L9.697,3.364C10.088,3.754 10.088,4.387 9.697,4.778C9.307,5.168 8.673,5.168 8.283,4.778L7.293,3.788C6.902,3.397 6.902,2.764 7.293,2.374ZM17.434,2.374C17.824,2.764 17.824,3.397 17.434,3.788L16.444,4.778C16.053,5.168 15.42,5.168 15.03,4.778C14.639,3.387 14.639,3.754 15.03,3.364L16.02,2.374C16.41,1.983 17.043,1.983 17.434,2.374Z" fill="#fff"/>
+          </svg>
+        </span>
+        <span class="label">Flash</span>
+      </a>
+      <a href="#" class="util-btn util-center" style="text-decoration:none;">
+        <span class="qris-logo">
+          <!-- ic_loco_qris_white: stylized "QRIS" wordmark -->
+          <svg viewBox="0 0 60 23" fill="#fff" aria-hidden="true">
+            <text x="0" y="17" font-family="Arial Black, sans-serif" font-size="17" font-weight="900" letter-spacing="0.5">QRIS</text>
+          </svg>
+        </span>
+      </a>
+      <a href="#" class="util-btn" style="text-decoration:none;">
+        <span class="icon">
+          <!-- ic_gallery_white (24x24, white paths) -->
+          <svg viewBox="0 0 24 24" fill="#fff" fill-rule="evenodd" clip-rule="evenodd">
+            <path d="M18,3H6C4.343,3 3,4.343 3,6V18C3,19.657 4.343,21 6,21H18C19.657,21 21,19.657 21,18V16.003C21,16.001 21,15.998 21,15.996V6C21,4.343 19.657,3 18,3ZM19,13.339V6C19,5.448 18.552,5 18,5H6C5.448,5 5,5.448 5,6V16.4L9.412,13.191C9.81,12.902 10.359,12.945 10.707,13.293L11.614,14.2L15.927,11.181C16.345,10.888 16.916,10.957 17.253,11.342L19,13.339ZM5.266,18.679C5.449,18.876 5.71,19 6,19H18C18.552,19 19,18.552 19,18V16.376L16.338,13.334L12.073,16.319C11.676,16.597 11.136,16.55 10.793,16.207L9.897,15.311L5.266,18.679Z"/>
+            <circle cx="12.5" cy="8.5" r="1.5"/>
+          </svg>
+        </span>
+        <span class="label">Gallery</span>
+      </a>
+    </div>
+
+    <!-- bottom sheet (id=view_bottom_sheet / constraintLayout3) -->
+    <div class="sheet">
+      <p class="info">Scan QR or show Payment QR</p>
+      <div class="tile-row">
+        <a href="#" class="tile" style="text-decoration:none;">
+          <span class="tile-icon">
+            <!-- ic_qris_pay (24x24, red #ea2f2a) — small QR frame icon -->
+            <svg viewBox="0 0 24 24" fill="none">
+              <g stroke="#ea2f2a" stroke-width="1.2" fill="none">
+                <path d="M6 1H1v5"/>
+                <path d="M18 1h5v5"/>
+                <path d="M18 23h5v-5"/>
+                <path d="M6 23H1v-5"/>
+              </g>
+              <g fill="#ea2f2a">
+                <rect x="3"  y="3"  width="3" height="3"/>
+                <rect x="18" y="3"  width="3" height="3"/>
+                <rect x="3"  y="18" width="3" height="3"/>
+                <rect x="18" y="18" width="3" height="3"/>
+                <rect x="9"  y="3"  width="6" height="2"/>
+                <rect x="9"  y="9"  width="2" height="6"/>
+                <rect x="14" y="9"  width="2" height="2"/>
+                <rect x="9"  y="14" width="2" height="2"/>
+                <rect x="14" y="14" width="2" height="2"/>
+                <rect x="11" y="11" width="2" height="2"/>
+              </g>
+              <text x="12" y="13.5" text-anchor="middle"
+                    font-family="Arial Black, sans-serif" font-size="3.2"
+                    font-weight="900" fill="#ea2f2a">QRIS</text>
+            </svg>
+          </span>
+          <span class="tile-label">Show QR</span>
+        </a>
+        <a href="#" class="tile receive" style="text-decoration:none;">
+          <span class="tile-icon">
+            <!-- ic_qris_transfer (24x24): arrow + QRIS wordmark -->
+            <svg viewBox="0 0 24 24" fill="none" stroke="#202020" stroke-width="0.6">
+              <g fill="#202020">
+                <path d="M23.541,17.435H22.75L17.705,0.968L1.453,5.946L4.181,14.855H3.389L0.5,5.421L18.2,0L23.541,17.435Z"/>
+                <path d="M18.132,3.296C18.132,6.83 15.845,10.1 12.29,11.189L11.698,11.37C7.045,12.516 2.719,10.254 1.384,5.893L17.768,0.875C18.015,1.681 18.132,2.495 18.132,3.296Z"/>
+              </g>
+              <g fill="#ea2f2a">
+                <rect x="8"  y="17"  width="5" height="2"/>
+                <rect x="14" y="17"  width="2" height="5"/>
+                <rect x="3"  y="17"  width="1" height="5"/>
+                <rect x="2"  y="17"  width="1" height="2"/>
+                <rect x="6"  y="17"  width="1" height="5"/>
+                <rect x="3"  y="20"  width="5" height="2"/>
+                <rect x="6"  y="20"  width="2" height="2"/>
+                <rect x="21" y="21"  width="1" height="2"/>
+                <rect x="2"  y="16"  width="3" height="1"/>
+                <rect x="16" y="17"  width="6" height="1"/>
+                <rect x="17" y="19"  width="3" height="2"/>
+                <rect x="16" y="20"  width="6" height="2"/>
+                <rect x="18" y="18"  width="4" height="1"/>
+              </g>
+              <text x="11.5" y="22.5" text-anchor="middle"
+                    font-family="Arial Black, sans-serif" font-size="3.2"
+                    font-weight="900" fill="#ea2f2a">QRIS</text>
+            </svg>
+          </span>
+          <span class="tile-label">Receive Transfer</span>
+        </a>
+      </div>
+      <div class="home-bar"></div>
+    </div>
+
+  </div><!-- /.scanner -->
+</div><!-- /.phone -->
+</body>
+</html>

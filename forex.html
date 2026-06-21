@@ -1,0 +1,1100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OCBC NISP — Foreign Exchange (ForexPageActivity) — static prototype</title>
+<!--
+  Self-contained prototype. Tokens and shared chrome are also exported
+  to ../shared/ for reuse on future screens. See ../shared/SHARED.md.
+-->
+<style>
+  /* =========================================================
+     DESIGN TOKENS — canonical source: ../shared/tokens.css
+     Distilled from ocbc_apktool/res/values/{colors,dimens,styles}.xml
+     (1dp = 1px on this 360dp logical canvas; 1sp = 1px)
+     ========================================================= */
+  :root {
+    /* ---------- brand colors ---------- */
+    --red-primary:        #e30613;
+    --red-dark:           #ba1c18;
+    --black-primary:      #202020;
+    --black-medium:       #80838b;
+    --white-primary:      #ffffff;
+    --gray-bright:        #575d65;
+    --gray-blush:         #d3d8e5;
+    --default-window-bg:  #ffffff;
+    --gray-medium:        #80838b;
+    --gray-light:         #f3f4fb;
+    --blue-navy:          #005efd;
+
+    /* ---------- space scale ---------- */
+    --space-0:    0px;
+    --space-half: 4px;
+    --space-1:    8px;
+    --space-1-5:  12px;
+    --space-2:    16px;
+    --space-3:    24px;
+    --space-5:    40px;
+    --space-6:    48px;
+    --size-1:     1px;
+    --size-10:    10px;
+
+    /* ---------- typography ---------- */
+    --font-family:   "Fira Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --font-micro:    12px;
+    --font-mini:     14px;
+    --font-body:     16px;
+    --font-h2:       24px;
+    --font-display:  28px;
+
+    /* ---------- shadows ---------- */
+    --shadow-card:    0 1px 2px rgba(0,0,0,.04);
+    --shadow-card-lg: 0 6px 16px rgba(0,0,0,.12);
+    --shadow-nav:     0 -2px 6px rgba(0,0,0,.06);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 100%; }
+  body {
+    font-family: var(--font-family);
+    font-size: var(--font-body);
+    color: var(--black-primary);
+    background: #ececec;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 0;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* =========================================================
+     PHONE FRAME — 360dp × 800dp logical canvas
+     ========================================================= */
+  .phone {
+    width: 360px;
+    height: 800px;
+    background: var(--default-window-bg);
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 8px 28px rgba(0,0,0,.18);
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* =========================================================
+     STATUS BAR — generic Android row
+     ========================================================= */
+  .status-bar {
+    height: 28px;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 14px;
+    font-size: 11px;
+    color: var(--black-primary);
+    flex-shrink: 0;
+    position: relative;
+  }
+  .status-time {
+    font-weight: 600;
+    letter-spacing: .2px;
+    color: var(--black-primary);
+  }
+  .status-right {
+    display: flex; align-items: center; gap: 5px;
+    color: var(--black-primary);
+  }
+  .status-right .si-glyph { width: 14px; height: 12px; color: var(--black-primary); }
+  .status-right .si-pct {
+    font-size: 10px; font-weight: 600; color: var(--black-primary); padding-left: 2px;
+  }
+
+  /* =========================================================
+     TOOLBAR — white bg, red back, black center title
+     (BaseToolbarActivity for this screen; uses ic_back_red)
+     ========================================================= */
+  .toolbar {
+    height: 48px;
+    background: #fff;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    border-bottom: 1px solid #f0f0f0;
+  }
+  .toolbar-back {
+    position: absolute; left: 0; top: 0;
+    width: 40px; height: 100%;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--red-primary);
+  }
+  .toolbar-back svg { width: 24px; height: 24px; }
+  .toolbar-title {
+    font-size: var(--font-body);
+    font-weight: 700;
+    color: var(--black-primary);
+    text-align: center;
+  }
+
+  /* =========================================================
+     INNER TABS — Table | Graph
+     (forex_fragment.xml: ScalableTabLayout + ViewPager2)
+     ========================================================= */
+  .inner-tabs {
+    position: relative;
+    background: #fff;
+    flex-shrink: 0;
+  }
+  .inner-tabs-row {
+    display: flex;
+    align-items: stretch;
+    height: 48px;
+    border-bottom: 1px solid #fff;
+  }
+  .inner-tab {
+    flex: 1 1 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: var(--font-body);
+    font-weight: 500;
+    color: var(--black-primary);
+    cursor: pointer;
+    text-decoration: none;
+    position: relative;
+  }
+  .inner-tab.active { color: var(--red-primary); font-weight: 700; }
+  .inner-tab .underline {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    height: 3px;
+    background: var(--red-primary);
+    transform: scaleX(0);
+    transform-origin: center;
+    transition: transform .2s;
+  }
+  .inner-tab.active .underline { transform: scaleX(1); }
+  .inner-tabs-row::after {
+    content: "";
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: 1px;
+    background: var(--gray-blush);
+  }
+
+  /* =========================================================
+     SCROLL BODY
+     ========================================================= */
+  .scroll {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    background: #fff;
+    position: relative;
+    min-height: 0;
+  }
+
+  /* =========================================================
+     TABLE TAB
+     ========================================================= */
+  .fx-table { display: block; }
+  .fx-table.hidden,
+  .fx-graph.hidden { display: none; }
+
+  /* base-currency pill row (IDR / USD / EUR / GBP / AUD / HKD ...) */
+  .ccy-pills {
+    display: flex;
+    gap: 8px;
+    padding: 16px 16px 12px 16px;
+    overflow-x: auto;
+  }
+  .ccy-pill {
+    flex: 0 0 auto;
+    padding: 10px 20px;
+    border-radius: 100px;
+    border: 1px solid var(--gray-blush);
+    color: var(--black-primary);
+    background: #fff;
+    font-size: var(--font-mini);
+    font-weight: 500;
+    text-align: center;
+    white-space: nowrap;
+    text-decoration: none;
+  }
+  .ccy-pill.active {
+    background: var(--red-primary);
+    border-color: var(--red-primary);
+    color: #fff;
+    font-weight: 700;
+  }
+
+  /* timestamp text */
+  .fx-timestamp {
+    text-align: center;
+    padding: 0 20px 16px 20px;
+    font-size: var(--font-body);
+    color: var(--black-primary);
+    line-height: 1.35;
+  }
+  .fx-timestamp .bold { font-weight: 700; }
+
+  /* the table card: header + list + (rate-alert button at the bottom) */
+  .fx-card {
+    background: #fff;
+    border-radius: 14px;
+    margin: 0 12px 16px 12px;
+    box-shadow: var(--shadow-card);
+    overflow: hidden;
+  }
+  .fx-card .head {
+    background: var(--gray-medium);
+    color: #fff;
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .fx-card .head .title { font-size: var(--font-body); font-weight: 700; }
+  .fx-card .head .price { font-size: var(--font-body); font-weight: 700; }
+
+  /* each currency row: flag | code | spacer | value-pill + chevron */
+  .fx-row {
+    display: flex;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid #f0f0f0;
+    gap: 16px;
+  }
+  .fx-row:last-child { border-bottom: 0; }
+  .fx-row .flag {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    overflow: hidden;
+    line-height: 0;
+  }
+  .fx-row .flag svg { display: block; width: 100%; height: 100%; }
+  .fx-row .ccy {
+    font-size: var(--font-body);
+    color: var(--black-primary);
+    flex-shrink: 0;
+  }
+  .fx-row .value-pill {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border: 1px solid var(--gray-blush);
+    border-radius: 100px;
+    font-size: var(--font-mini);
+    font-weight: 700;
+    color: var(--black-primary);
+    text-decoration: none;
+  }
+  .fx-row .value-pill .chev { color: var(--red-primary); flex-shrink: 0; }
+
+  /* rate-alert button at the bottom of the screen */
+  .rate-alert-bar {
+    position: sticky;
+    bottom: 0;
+    background: #fff;
+    padding: 12px 16px 24px 16px;
+    display: flex;
+    justify-content: center;
+  }
+  .rate-alert-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    justify-content: center;
+    padding: 16px 24px;
+    border: 1.5px solid var(--red-primary);
+    border-radius: 100px;
+    color: var(--black-primary);
+    font-size: var(--font-body);
+    font-weight: 700;
+    text-decoration: none;
+    background: #fff;
+  }
+  .rate-alert-btn svg { color: var(--black-primary); }
+
+  /* =========================================================
+     GRAPH TAB
+     ========================================================= */
+  .fx-graph { display: block; }
+
+  /* converter card: "I'd like to buy USD | swap | I'd like to sell IDR" */
+  .converter {
+    margin: 16px 16px 0 16px;
+    background: #fff;
+    border-radius: 14px;
+    box-shadow: var(--shadow-card);
+    padding: 20px 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    position: relative;
+  }
+  .converter .field {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+  .converter .field .label {
+    font-size: var(--font-mini);
+    font-weight: 700;
+    color: var(--black-primary);
+  }
+  .converter .field .value {
+    margin-top: 4px;
+    font-size: var(--font-body);
+    color: var(--black-primary);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .converter .field .value .ccy { font-weight: 500; }
+  .converter .field .value .caret { width: 14px; height: 14px; color: var(--black-primary); }
+  .converter .field .underline {
+    height: 1px;
+    background: var(--gray-blush);
+    margin-top: 8px;
+  }
+  .converter .swap {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--red-primary) 0%, var(--red-dark) 100%);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    color: #fff;
+    transform: rotate(90deg);
+  }
+  .converter .swap svg { width: 20px; height: 20px; }
+
+  /* chart title + subtitle + info */
+  .chart-head {
+    padding: 16px 16px 0 16px;
+  }
+  .chart-head .title {
+    font-size: var(--font-body);
+    font-weight: 700;
+    color: var(--black-primary);
+  }
+  .chart-head .sub {
+    margin-top: 4px;
+    font-size: var(--font-micro);
+    color: var(--black-medium);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .chart-head .info {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    border: 1.2px solid var(--black-medium);
+    color: var(--black-medium);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700; font-style: italic;
+  }
+
+  /* the line chart */
+  .chart-area {
+    margin: 12px 16px 0 16px;
+    height: 200px;
+    position: relative;
+  }
+  .chart-area svg { display: block; width: 100%; height: 100%; }
+
+  /* time-period chips (1M / 3M / 1Y / 3Y / 5Y) */
+  .period-chips {
+    display: flex;
+    gap: 8px;
+    padding: 12px 16px 8px 16px;
+    overflow-x: auto;
+  }
+  .period-chip {
+    flex: 0 0 auto;
+    padding: 8px 16px;
+    border-radius: 100px;
+    border: 1px solid var(--gray-blush);
+    color: var(--black-primary);
+    background: #fff;
+    font-size: var(--font-mini);
+    font-weight: 500;
+    text-decoration: none;
+    text-align: center;
+    white-space: nowrap;
+  }
+  .period-chip.active {
+    background: var(--red-primary);
+    border-color: var(--red-primary);
+    color: #fff;
+    font-weight: 700;
+  }
+
+  /* bottom fixed "1 USD is equivalent to IDR 17,837" card */
+  .rate-card {
+    background: #fff;
+    border-top-left-radius: 16px;
+    border-top-right-radius: 16px;
+    box-shadow: var(--shadow-card-lg);
+    padding: 20px 16px 16px 16px;
+    margin: 8px 0 0 0;
+  }
+  .rate-card .eq-label {
+    font-size: var(--font-body);
+    color: var(--black-primary);
+  }
+  .rate-card .eq-value {
+    margin-top: 4px;
+    font-size: var(--font-h2);
+    font-weight: 700;
+    color: var(--black-primary);
+    line-height: 1.1;
+  }
+  .rate-card .info {
+    margin-top: 6px;
+    font-size: var(--font-micro);
+    color: var(--black-medium);
+  }
+  .rate-card .actions {
+    margin-top: 16px;
+    display: flex;
+    gap: 12px;
+  }
+  .rate-card .actions .btn {
+    flex: 1 1 0;
+    padding: 14px 16px;
+    border-radius: 100px;
+    text-align: center;
+    font-size: var(--font-body);
+    font-weight: 700;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .rate-card .actions .btn.alert {
+    background: #fff;
+    color: var(--black-primary);
+    border: 1.5px solid var(--red-primary);
+  }
+  .rate-card .actions .btn.continue {
+    background: var(--red-primary);
+    color: #fff;
+    border: 1.5px solid var(--red-primary);
+  }
+
+  /* =========================================================
+     HOME INDICATOR
+     ========================================================= */
+  .home-indicator {
+    position: absolute;
+    left: 50%; bottom: 6px;
+    transform: translateX(-50%);
+    width: 134px; height: 4px;
+    background: rgba(0,0,0,.25);
+    border-radius: 2px;
+    pointer-events: none;
+    z-index: 30;
+  }
+</style>
+
+  <!-- =========================================================
+       HOSTED-PROTOTYPE WRAPPER — added by prototype/wire-links.py
+       Desktop: 360px phone centered on a neutral page bg.
+       Mobile (≤ 480px): phone fills the screen up to 360px
+       and the page scrolls vertically.
+       ========================================================= -->
+  <style>
+    html, body {
+      background: #ececec;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      width: 360px;
+      margin: 0 auto;
+      display: block;
+    }
+    .phone {
+      width: 360px;
+      height: auto;
+      min-height: 800px;
+    }
+    @media (max-width: 480px) {
+      html, body {
+        background: #fff;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        width: 100vw;
+        max-width: 360px;
+        margin: 0 auto;
+      }
+      .phone {
+        width: 100%;
+        max-width: 360px;
+        box-shadow: none;
+        border-radius: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="phone" role="application" aria-label="OCBC NISP foreign exchange prototype">
+
+    <!-- status bar (generic) -->
+    <div class="status-bar" aria-hidden="true">
+      <span class="status-time">15:23</span>
+      <div class="status-right">
+        <svg class="si-glyph" viewBox="0 0 14 12" aria-hidden="true">
+          <rect x="0"  y="8" width="2" height="4"  fill="currentColor"/>
+          <rect x="4"  y="5" width="2" height="7"  fill="currentColor"/>
+          <rect x="8"  y="2" width="2" height="10" fill="currentColor"/>
+          <rect x="12" y="0" width="2" height="12" fill="currentColor"/>
+        </svg>
+        <svg class="si-glyph" viewBox="0 0 14 12" aria-hidden="true">
+          <path d="M7 11a1.4 1.4 0 100-2.8 1.4 1.4 0 000 2.8zM2.8 6.5a6 6 0 018.4 0l-1 1a4.6 4.6 0 00-6.4 0l-1-1zM.6 4.2a9.2 9.2 0 0112.8 0l-1 1a7.8 7.8 0 00-10.8 0l-1-1z" fill="currentColor"/>
+        </svg>
+        <svg class="si-glyph" viewBox="0 0 22 12" aria-hidden="true">
+          <rect x="0" y="0" width="18" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="1.2"/>
+          <rect x="2" y="2" width="12" height="8"  fill="currentColor"/>
+          <rect x="19" y="3.5" width="2" height="5" rx="0.5" fill="currentColor"/>
+        </svg>
+        <span class="si-pct">41</span>
+      </div>
+    </div>
+
+    <!-- toolbar -->
+    <header class="toolbar">
+      <a class="toolbar-back" href="dashboard.html" aria-label="Back">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path fill="currentColor" fill-rule="evenodd"
+            d="M3.9 11.365L9.616 5.72a1.58 1.58 0 000-2.248 1.625 1.625 0 00-2.293 0l-6.845 6.76a1.585 1.585 0 000 2.265l6.845 6.84c.305.299.717.465 1.146.463.43.002.842-.164 1.147-.462a1.58 1.58 0 000-2.249L3.9 11.365z"/>
+        </svg>
+      </a>
+      <div class="toolbar-title">Foreign Exchange</div>
+    </header>
+
+    <!-- inner tabs: Table | Graph -->
+    <nav class="inner-tabs" aria-label="View">
+      <div class="inner-tabs-row">
+        <a class="inner-tab active" href="#table" data-target="table" role="tab" aria-selected="true">
+          Table
+          <span class="underline"></span>
+        </a>
+        <a class="inner-tab" href="#graph" data-target="graph" role="tab" aria-selected="false">
+          Graph
+          <span class="underline"></span>
+        </a>
+      </div>
+    </nav>
+
+    <!-- scroll body -->
+    <main class="scroll">
+
+      <!-- ============================== TABLE TAB ============================== -->
+      <section class="fx-table" id="view-table" role="tabpanel" aria-label="Forex rates table">
+
+        <!-- base-currency pill row -->
+        <div class="ccy-pills" role="tablist" aria-label="Base currency">
+          <a class="ccy-pill active" href="#" role="tab" aria-selected="true">IDR</a>
+          <a class="ccy-pill" href="#" role="tab" aria-selected="false">USD</a>
+          <a class="ccy-pill" href="#" role="tab" aria-selected="false">EUR</a>
+          <a class="ccy-pill" href="#" role="tab" aria-selected="false">GBP</a>
+          <a class="ccy-pill" href="#" role="tab" aria-selected="false">AUD</a>
+          <a class="ccy-pill" href="#" role="tab" aria-selected="false">HKD</a>
+        </div>
+
+        <!-- timestamp -->
+        <p class="fx-timestamp">
+          Indicative rates are taken on <span class="bold">21 Jun 2026 &bull; 15:23 WIB</span> and may change accordingly.
+        </p>
+
+        <!-- table card -->
+        <div class="fx-card" aria-label="Currency rates">
+          <div class="head">
+            <span class="title">Currency</span>
+            <span class="price">Price</span>
+          </div>
+
+          <!-- USD -->
+          <div class="fx-row">
+            <span class="flag" aria-hidden="true">
+              <svg viewBox="0 0 22 22">
+                <rect width="22" height="22" rx="11" fill="#bd2334"/>
+                <rect y="2"  width="22" height="1.7" fill="#fff"/>
+                <rect y="5.4" width="22" height="1.7" fill="#fff"/>
+                <rect y="8.8" width="22" height="1.7" fill="#fff"/>
+                <rect y="12.2" width="22" height="1.7" fill="#fff"/>
+                <rect y="15.6" width="22" height="1.7" fill="#fff"/>
+                <rect y="19"  width="22" height="1.7" fill="#fff"/>
+                <rect width="9" height="8" fill="#1f3989"/>
+              </svg>
+            </span>
+            <span class="ccy">USD</span>
+            <a class="value-pill" href="#">
+              17,837
+              <svg class="chev" viewBox="0 0 12 12" width="10" height="10" aria-hidden="true">
+                <path d="M3 2l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </a>
+          </div>
+
+          <!-- EUR -->
+          <div class="fx-row">
+            <span class="flag" aria-hidden="true">
+              <svg viewBox="0 0 22 22">
+                <rect width="22" height="22" rx="11" fill="#003399"/>
+                <g fill="#ffd400">
+                  <circle cx="11" cy="3"  r=".7"/>
+                  <circle cx="14.6" cy="4.2"  r=".7"/>
+                  <circle cx="17" cy="7"  r=".7"/>
+                  <circle cx="18" cy="11"  r=".7"/>
+                  <circle cx="17" cy="15"  r=".7"/>
+                  <circle cx="14.6" cy="17.8" r=".7"/>
+                  <circle cx="11" cy="19" r=".7"/>
+                  <circle cx="7.4" cy="17.8" r=".7"/>
+                  <circle cx="5" cy="15"  r=".7"/>
+                  <circle cx="4" cy="11"  r=".7"/>
+                  <circle cx="5" cy="7"  r=".7"/>
+                  <circle cx="7.4" cy="4.2"  r=".7"/>
+                </g>
+              </svg>
+            </span>
+            <span class="ccy">EUR</span>
+            <a class="value-pill" href="#">
+              20,488
+              <svg class="chev" viewBox="0 0 12 12" width="10" height="10" aria-hidden="true">
+                <path d="M3 2l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </a>
+          </div>
+
+          <!-- GBP -->
+          <div class="fx-row">
+            <span class="flag" aria-hidden="true">
+              <svg viewBox="0 0 22 22">
+                <rect width="22" height="22" rx="11" fill="#012169"/>
+                <path d="M0 0 L22 22 M22 0 L0 22" stroke="#fff" stroke-width="3"/>
+                <path d="M0 0 L22 22 M22 0 L0 22" stroke="#C8102E" stroke-width="1.5"/>
+                <path d="M11 0 V22 M0 11 H22" stroke="#fff" stroke-width="4"/>
+                <path d="M11 0 V22 M0 11 H22" stroke="#C8102E" stroke-width="2"/>
+              </svg>
+            </span>
+            <span class="ccy">GBP</span>
+            <a class="value-pill" href="#">
+              23,662
+              <svg class="chev" viewBox="0 0 12 12" width="10" height="10" aria-hidden="true">
+                <path d="M3 2l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </a>
+          </div>
+
+          <!-- AUD -->
+          <div class="fx-row">
+            <span class="flag" aria-hidden="true">
+              <svg viewBox="0 0 22 22">
+                <rect width="22" height="22" rx="11" fill="#012169"/>
+                <rect width="11" height="11" fill="#012169"/>
+                <path d="M0 0 L11 11 M11 0 L0 11" stroke="#fff" stroke-width="1.8"/>
+                <path d="M5.5 0 V11 M0 5.5 H11" stroke="#fff" stroke-width="2"/>
+                <path d="M5.5 0 V11 M0 5.5 H11" stroke="#C8102E" stroke-width="1"/>
+                <g fill="#fff">
+                  <circle cx="15" cy="6"  r=".5"/>
+                  <circle cx="17" cy="9"  r=".5"/>
+                  <circle cx="14" cy="11" r=".5"/>
+                  <circle cx="18" cy="13" r=".5"/>
+                  <circle cx="15" cy="15" r=".5"/>
+                  <circle cx="17" cy="17" r=".5"/>
+                </g>
+              </svg>
+            </span>
+            <span class="ccy">AUD</span>
+            <a class="value-pill" href="#">
+              12,555
+              <svg class="chev" viewBox="0 0 12 12" width="10" height="10" aria-hidden="true">
+                <path d="M3 2l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </a>
+          </div>
+
+          <!-- HKD -->
+          <div class="fx-row">
+            <span class="flag" aria-hidden="true">
+              <svg viewBox="0 0 22 22">
+                <rect width="22" height="22" rx="11" fill="#de2910"/>
+                <g transform="translate(11 11)" fill="#fff">
+                  <!-- 5-petal Bauhinia flower, stylized -->
+                  <g>
+                    <ellipse cx="0" cy="-4" rx="1.6" ry="2.4" transform="rotate(0)"/>
+                    <ellipse cx="0" cy="-4" rx="1.6" ry="2.4" transform="rotate(72)"/>
+                    <ellipse cx="0" cy="-4" rx="1.6" ry="2.4" transform="rotate(144)"/>
+                    <ellipse cx="0" cy="-4" rx="1.6" ry="2.4" transform="rotate(216)"/>
+                    <ellipse cx="0" cy="-4" rx="1.6" ry="2.4" transform="rotate(288)"/>
+                  </g>
+                  <circle cx="0" cy="0" r="1" fill="#de2910"/>
+                </g>
+              </svg>
+            </span>
+            <span class="ccy">HKD</span>
+            <a class="value-pill" href="#">
+              2,284.57
+              <svg class="chev" viewBox="0 0 12 12" width="10" height="10" aria-hidden="true">
+                <path d="M3 2l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </a>
+          </div>
+
+          <!-- JPY -->
+          <div class="fx-row">
+            <span class="flag" aria-hidden="true">
+              <svg viewBox="0 0 22 22">
+                <rect width="22" height="22" rx="3" fill="#fff" stroke="#e6e9f3" stroke-width="0.5"/>
+                <circle cx="11" cy="11" r="5" fill="#bc002d"/>
+              </svg>
+            </span>
+            <span class="ccy">JPY</span>
+            <a class="value-pill" href="#">
+              110.86
+              <svg class="chev" viewBox="0 0 12 12" width="10" height="10" aria-hidden="true">
+                <path d="M3 2l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </a>
+          </div>
+
+          <!-- SGD -->
+          <div class="fx-row">
+            <span class="flag" aria-hidden="true">
+              <svg viewBox="0 0 22 22">
+                <rect width="22" height="22" rx="11" fill="#fff"/>
+                <rect width="22" height="11" fill="#ed2939"/>
+                <g fill="#fff" transform="translate(5 5.5)">
+                  <circle cx="3" cy="2.6" r="1.4"/>
+                  <circle cx="3" cy="2.6" r=".6" fill="#ed2939"/>
+                </g>
+              </svg>
+            </span>
+            <span class="ccy">SGD</span>
+            <a class="value-pill" href="#">
+              13,885
+              <svg class="chev" viewBox="0 0 12 12" width="10" height="10" aria-hidden="true">
+                <path d="M3 2l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </a>
+          </div>
+
+          <!-- NZD -->
+          <div class="fx-row">
+            <span class="flag" aria-hidden="true">
+              <svg viewBox="0 0 22 22">
+                <rect width="22" height="22" rx="11" fill="#012169"/>
+                <rect width="11" height="11" fill="#012169"/>
+                <path d="M0 0 L11 11 M11 0 L0 11" stroke="#fff" stroke-width="1.8"/>
+                <path d="M5.5 0 V11 M0 5.5 H11" stroke="#fff" stroke-width="2"/>
+                <path d="M5.5 0 V11 M0 5.5 H11" stroke="#C8102E" stroke-width="1"/>
+                <g fill="#c8102e">
+                  <circle cx="15" cy="6"  r=".7"/>
+                  <circle cx="17" cy="9"  r=".7"/>
+                  <circle cx="14" cy="11" r=".7"/>
+                  <circle cx="18" cy="13" r=".7"/>
+                  <circle cx="15" cy="15" r=".7"/>
+                  <circle cx="17" cy="17" r=".7"/>
+                </g>
+              </svg>
+            </span>
+            <span class="ccy">NZD</span>
+            <a class="value-pill" href="#">
+              10,261
+              <svg class="chev" viewBox="0 0 12 12" width="10" height="10" aria-hidden="true">
+                <path d="M3 2l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </a>
+          </div>
+
+          <!-- CHF -->
+          <div class="fx-row">
+            <span class="flag" aria-hidden="true">
+              <svg viewBox="0 0 22 22">
+                <rect width="22" height="22" rx="11" fill="#d52b1e"/>
+                <rect x="9" y="4" width="4" height="14" fill="#fff"/>
+                <rect x="4" y="9" width="14" height="4" fill="#fff"/>
+              </svg>
+            </span>
+            <span class="ccy">CHF</span>
+            <a class="value-pill" href="#">
+              22,155
+              <svg class="chev" viewBox="0 0 12 12" width="10" height="10" aria-hidden="true">
+                <path d="M3 2l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </a>
+          </div>
+
+          <!-- CAD -->
+          <div class="fx-row">
+            <span class="flag" aria-hidden="true">
+              <svg viewBox="0 0 22 22">
+                <rect width="22" height="22" rx="11" fill="#fff"/>
+                <rect width="5"  height="22" fill="#d52b1e"/>
+                <rect x="17" width="5"  height="22" fill="#d52b1e"/>
+                <path d="M11 4 L11.8 6 L11 6.4 L10.2 6 Z" fill="#d52b1e"/>
+              </svg>
+            </span>
+            <span class="ccy">CAD</span>
+            <a class="value-pill" href="#">
+              12,623
+              <svg class="chev" viewBox="0 0 12 12" width="10" height="10" aria-hidden="true">
+                <path d="M3 2l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </a>
+          </div>
+
+          <!-- CNH -->
+          <div class="fx-row">
+            <span class="flag" aria-hidden="true">
+              <svg viewBox="0 0 22 22">
+                <rect width="22" height="22" rx="11" fill="#de2910"/>
+                <g fill="#ffde00" transform="translate(5 6)">
+                  <polygon points="2,0 2.4,1.2 3.6,1.2 2.6,2 3,3.2 2,2.4 1,3.2 1.4,2 0.4,1.2 1.6,1.2"/>
+                </g>
+              </svg>
+            </span>
+            <span class="ccy">CNH</span>
+            <a class="value-pill" href="#">
+              2,639
+              <svg class="chev" viewBox="0 0 12 12" width="10" height="10" aria-hidden="true">
+                <path d="M3 2l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </a>
+          </div>
+
+          <!-- SAR -->
+          <div class="fx-row">
+            <span class="flag" aria-hidden="true">
+              <svg viewBox="0 0 22 22">
+                <rect width="22" height="22" rx="11" fill="#006c35"/>
+                <text x="11" y="13" text-anchor="middle" font-size="6" font-weight="800" fill="#fff" font-family="sans-serif">SAR</text>
+              </svg>
+            </span>
+            <span class="ccy">SAR</span>
+            <a class="value-pill" href="#">
+              4,761.50
+              <svg class="chev" viewBox="0 0 12 12" width="10" height="10" aria-hidden="true">
+                <path d="M3 2l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </a>
+          </div>
+
+          <!-- AED -->
+          <div class="fx-row">
+            <span class="flag" aria-hidden="true">
+              <svg viewBox="0 0 22 22">
+                <rect width="22" height="22" rx="11" fill="#fff"/>
+                <rect width="22" height="7"  fill="#00732f"/>
+                <rect y="14" width="22" height="8" fill="#000"/>
+                <rect y="7"  width="22" height="7" fill="#fff"/>
+                <rect width="6" height="22" fill="#ce1126"/>
+              </svg>
+            </span>
+            <span class="ccy">AED</span>
+            <a class="value-pill" href="#">
+              4,869
+              <svg class="chev" viewBox="0 0 12 12" width="10" height="10" aria-hidden="true">
+                <path d="M3 2l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </a>
+          </div>
+
+          <!-- THB -->
+          <div class="fx-row">
+            <span class="flag" aria-hidden="true">
+              <svg viewBox="0 0 22 22">
+                <rect width="22" height="22" rx="11" fill="#fff"/>
+                <rect width="22" height="5"  fill="#a51931"/>
+                <rect y="5" width="22" height="2" fill="#fff"/>
+                <rect y="7" width="22" height="8" fill="#2d2a4a"/>
+                <rect y="15" width="22" height="2" fill="#fff"/>
+                <rect y="17" width="22" height="5" fill="#a51931"/>
+              </svg>
+            </span>
+            <span class="ccy">THB</span>
+            <a class="value-pill" href="#">
+              548.50
+              <svg class="chev" viewBox="0 0 12 12" width="10" height="10" aria-hidden="true">
+                <path d="M3 2l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </a>
+          </div>
+
+          <!-- KRW -->
+          <div class="fx-row">
+            <span class="flag" aria-hidden="true">
+              <svg viewBox="0 0 22 22">
+                <rect width="22" height="22" rx="11" fill="#fff"/>
+                <circle cx="11" cy="11" r="4" fill="#cd2e3a" fill-opacity=".8"/>
+                <path d="M11 7 a4 4 0 0 1 0 8 a2 2 0 0 0 0 -4 a2 2 0 0 1 0 -4 z" fill="#0047a0"/>
+                <g fill="#000">
+                  <rect x="2" y="6" width="1" height="3"/>
+                  <rect x="2" y="13" width="1" height="3"/>
+                  <rect x="19" y="6" width="1" height="3"/>
+                  <rect x="19" y="13" width="1" height="3"/>
+                  <rect x="6" y="3" width="1" height="2"/>
+                  <rect x="17" y="3" width="1" height="2"/>
+                  <rect x="6" y="17" width="1" height="2"/>
+                  <rect x="17" y="17" width="1" height="2"/>
+                </g>
+              </svg>
+            </span>
+            <span class="ccy">KRW</span>
+            <a class="value-pill" href="#">
+              12.10
+              <svg class="chev" viewBox="0 0 12 12" width="10" height="10" aria-hidden="true">
+                <path d="M3 2l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </a>
+          </div>
+        </div>
+
+        <!-- rate alert bar -->
+        <div class="rate-alert-bar">
+          <a class="rate-alert-btn" href="#">
+            <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+              <circle cx="12" cy="13" r="8" fill="none" stroke="currentColor" stroke-width="1.6"/>
+              <path d="M9 13l2 2 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M12 4 V2 M10 2 H14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+              <circle cx="20" cy="6" r="2" fill="none" stroke="currentColor" stroke-width="1.4"/>
+            </svg>
+            Rate Alert
+          </a>
+        </div>
+      </section>
+
+      <!-- ============================== GRAPH TAB ============================== -->
+      <section class="fx-graph hidden" id="view-graph" role="tabpanel" aria-label="Forex rates graph">
+
+        <!-- converter card -->
+        <div class="converter">
+          <div class="field">
+            <div class="label">I'd like to buy</div>
+            <div class="value">
+              <span class="ccy">USD</span>
+              <svg class="caret" viewBox="0 0 14 14" aria-hidden="true">
+                <path d="M2 5l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <div class="underline"></div>
+          </div>
+          <div class="swap" aria-label="Swap currencies">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M7 6l-3 3 3 3 M4 9h12 M17 18l3-3-3-3 M20 15H8"
+                    fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <div class="field">
+            <div class="label">I'd like to sell</div>
+            <div class="value">
+              <span class="ccy">IDR</span>
+              <svg class="caret" viewBox="0 0 14 14" aria-hidden="true">
+                <path d="M2 5l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <div class="underline"></div>
+          </div>
+        </div>
+
+        <!-- chart head -->
+        <div class="chart-head">
+          <div class="title">USD to IDR Conversion Graph</div>
+          <div class="sub">
+            <span>Based on the last closing mid-price</span>
+            <span class="info" aria-label="Info">i</span>
+          </div>
+        </div>
+
+        <!-- line chart -->
+        <div class="chart-area" aria-label="Conversion graph">
+          <svg viewBox="0 0 320 200" preserveAspectRatio="none">
+            <!-- horizontal dashed reference lines -->
+            <line x1="0" y1="40"  x2="320" y2="40"  stroke="#cfd5e0" stroke-width="0.6" stroke-dasharray="3 2"/>
+            <line x1="0" y1="110" x2="320" y2="110" stroke="#cfd5e0" stroke-width="0.6" stroke-dasharray="3 2"/>
+            <line x1="0" y1="170" x2="320" y2="170" stroke="#cfd5e0" stroke-width="0.6"/>
+
+            <!-- the line path: a generally upward trend from low-left to high-right with noise -->
+            <path d="M0 178
+                     L10 176 L20 178 L30 175 L40 177 L50 172 L60 168
+                     L70 165 L80 162 L90 168 L100 158 L110 155 L120 150
+                     L130 145 L140 148 L150 140 L160 138 L170 132
+                     L180 128 L190 125 L200 120 L210 115 L220 118
+                     L230 110 L240 105 L250 95 L260 75 L270 50
+                     L280 60 L290 70 L300 65 L310 80 L320 75"
+                  fill="none" stroke="#9098a3" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+
+            <!-- right-axis labels (y values) -->
+            <text x="316" y="44"  text-anchor="end" font-size="10" fill="#80838b" font-family="sans-serif">18,210</text>
+            <text x="316" y="114" text-anchor="end" font-size="10" fill="#80838b" font-family="sans-serif">17,555</text>
+            <text x="316" y="174" text-anchor="end" font-size="10" fill="#80838b" font-family="sans-serif">16,900</text>
+
+            <!-- bottom-axis labels (x dates) -->
+            <text x="0"   y="194" font-size="10" fill="#80838b" font-family="sans-serif">21 Mar</text>
+            <text x="320" y="194" text-anchor="end" font-size="10" fill="#80838b" font-family="sans-serif">20 Jun</text>
+          </svg>
+        </div>
+
+        <!-- time-period chips -->
+        <div class="period-chips" role="tablist" aria-label="Time period">
+          <a class="period-chip" href="#" role="tab" aria-selected="false">1 Month</a>
+          <a class="period-chip active" href="#" role="tab" aria-selected="true">3 Months</a>
+          <a class="period-chip" href="#" role="tab" aria-selected="false">1 Year</a>
+          <a class="period-chip" href="#" role="tab" aria-selected="false">3 Years</a>
+          <a class="period-chip" href="#" role="tab" aria-selected="false">5 Years</a>
+        </div>
+
+        <!-- rate card -->
+        <div class="rate-card">
+          <div class="eq-label">1 USD is equivalent to</div>
+          <div class="eq-value">IDR 17,837</div>
+          <div class="info">Indicative rate on 21 Jun 2026 &bull; 15:23 WIB</div>
+          <div class="actions">
+            <a class="btn alert" href="#">
+              <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+                <circle cx="12" cy="13" r="8" fill="none" stroke="currentColor" stroke-width="1.6"/>
+                <path d="M9 13l2 2 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M12 4 V2 M10 2 H14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+                <circle cx="20" cy="6" r="2" fill="none" stroke="currentColor" stroke-width="1.4"/>
+              </svg>
+              Rate Alert
+            </a>
+            <a class="btn continue" href="#">Continue</a>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <div class="home-indicator" aria-hidden="true"></div>
+  </div>
+
+  <script>
+    // Simple tab switcher: show Table or Graph section, update active tab styling
+    document.querySelectorAll('.inner-tab').forEach(function(tab) {
+      tab.addEventListener('click', function(e) {
+        e.preventDefault();
+        var target = this.getAttribute('data-target');
+        document.querySelectorAll('.inner-tab').forEach(function(t) {
+          t.classList.remove('active');
+          t.setAttribute('aria-selected', 'false');
+        });
+        this.classList.add('active');
+        this.setAttribute('aria-selected', 'true');
+        document.getElementById('view-table').classList.toggle('hidden', target !== 'table');
+        document.getElementById('view-graph').classList.toggle('hidden', target !== 'graph');
+        // scroll the scroll container back to top
+        document.querySelector('.scroll').scrollTop = 0;
+      });
+    });
+  </script>
+</body>
+</html>

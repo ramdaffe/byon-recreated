@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OCBC NISP — Rewards — static prototype</title>
+<!--
+  Self-contained prototype. Tokens and shared chrome are also exported
+  to ../shared/ for reuse on future screens. See SHARED.md.
+
+  Source:  screenshot/reward-page.jpg
+  Build:   pure-vision — no layout/decompiled source used.
+           The Rewards tab in this app version shows a custom layout
+           that is NOT in the decompiled ocbc_apktool/ resources
+           (the source XML `rewards_fragment.xml` is a different, older
+           design). This prototype reproduces the visible pixels of
+           the screenshot.
+
+  Visible structure (top → bottom):
+    - status bar  (shared chrome, 09:59 / 80%)
+    - banner image (cream/gold, top of page)
+    - Premier Banking tier card (gold pill on banner, "See Details" >)
+    - "Explore OCBC rewards program & discover how to earn an
+       abundance of Poinseru." card  with "See Mission Now" link
+    - "My Orders & Redemptions" row (with >)
+    - Two balance cards: "Poinseru 38,900"  /  "Voyage Miles 1,077"
+    - Refer-a-friend pink banner ("Get a reward of up to IDR 1,000,000...")
+    - "Enjoy lots of benefits here" header
+    - Beyond Banking / Poinseru tab pill row
+    - Beyond Banking tip card ("Choose your Beyond Banking package...")
+    - Two service tiles (Pick Up Service [disabled], Medical Check Up)
+    - "Latest Promos" header + "See All" link
+    - bottom nav (Home / Financial / Scan / Rewards / More)
+-->
+<style>
+  :root {
+    --red-primary:        #e30613;
+    --red-dark:           #ba1c18;
+    --black-primary:      #202020;
+    --white-primary:      #ffffff;
+    --gray-mineshaft:     #363b40;
+    --gray-bright:        #575d65;
+    --gray-blush:         #eef0f4;
+    --gray-pale:          #f5f5f7;
+    --gray-disabled:      #b8bcc4;
+    --gold-premier:       #9a7b4a;
+    --gold-premier-2:     #a88859;
+    --banner-cream:       #f3e9d6;
+    --banner-cream-2:     #ede1c8;
+    --pink-warn-bg:       #fbe5e5;
+    --pink-warn-icon:     #f5a3a3;
+    --lavender-tip-bg:    #e6e3f0;
+    --link-blue:          #1a73e8;
+    --default-window-bg:  #ffffff;
+
+    --space-0:  0px;
+    --space-half: 4px;
+    --space-1:  8px;
+    --space-1-5: 12px;
+    --space-2:  16px;
+    --space-3:  24px;
+    --space-4:  32px;
+
+    --size-1:  1px;
+    --size-2:  2px;
+    --size-180: 180px;     /* banner image height */
+    --size-72:  72px;      /* bottom nav */
+
+    --font-family: "Fira Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --font-nano:  10px;
+    --font-micro: 12px;
+    --font-mini:  14px;
+    --font-body:  16px;
+    --font-head:  18px;
+    --font-display: 20px;
+    --font-amount: 22px;
+    --font-section: 22px;
+
+    --shadow-card: 0 2px 6px rgba(0,0,0,.06);
+    --shadow-card-lg: 0 4px 12px rgba(0,0,0,.08);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 100%; }
+  a { text-decoration: none; color: inherit; }
+  body {
+    font-family: var(--font-family);
+    font-size: var(--font-body);
+    color: var(--black-primary);
+    background: #ececec;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* =========================================================
+     PHONE FRAME
+     ========================================================= */
+  .phone {
+    width: 360px;
+    height: 800px;
+    background: var(--default-window-bg);
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 8px 28px rgba(0,0,0,.18);
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* =========================================================
+     STATUS BAR (generic shared chrome)
+     ========================================================= */
+  .status-bar {
+    height: 28px;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 14px;
+    font-size: 11px;
+    color: var(--black-primary);
+    flex-shrink: 0;
+    position: relative;
+    z-index: 4;
+  }
+  .status-time { font-weight: 600; letter-spacing: .2px; }
+  .status-right { display: flex; align-items: center; gap: 5px; }
+  .status-right .si-glyph { width: 14px; height: 12px; color: var(--black-primary); }
+  .status-right .si-pct { font-size: 10px; font-weight: 600; padding-left: 2px; }
+
+  /* =========================================================
+     SCROLL CONTENT
+     ========================================================= */
+  .scroll {
+    flex: 1;
+    overflow-y: auto;
+    background: #fff;
+    position: relative;
+    padding-bottom: 110px;
+  }
+
+  /* ---------- 1. Banner image + Premier Banking tier card ---------- */
+  .banner {
+    position: relative;
+    height: 100px;
+    background:
+      radial-gradient(ellipse 80% 100% at 70% 30%, #f5e7ce 0%, #efe0c5 60%, #e7d6b6 100%);
+    overflow: hidden;
+  }
+  /* soft "leaf / palm" shadow on the right of the banner */
+  .banner::after {
+    content: "";
+    position: absolute;
+    right: -20px;
+    bottom: -10px;
+    width: 200px;
+    height: 130px;
+    background: radial-gradient(ellipse 60% 80% at 60% 60%, rgba(180,150,100,.15) 0%, rgba(180,150,100,0) 70%);
+    pointer-events: none;
+  }
+
+  .premier-card {
+    position: absolute;
+    left: 12px;
+    right: 12px;
+    top: 18px;
+    height: 56px;
+    background: linear-gradient(180deg, #a98a5b 0%, #8a6e44 100%);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    box-shadow: 0 2px 6px rgba(0,0,0,.10);
+    color: #fff;
+    z-index: 2;
+  }
+  .premier-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .premier-icon svg { width: 28px; height: 28px; }
+  .premier-title {
+    flex: 1;
+    padding: 0 10px;
+    font-size: 14px;
+    font-weight: 800;
+    letter-spacing: .8px;
+    color: #fff;
+  }
+  .premier-see {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #fff;
+  }
+  .premier-see .chev { font-size: 16px; line-height: 1; }
+
+  /* ---------- 2. "Explore OCBC rewards program..." card ---------- */
+  .mission-card {
+    display: block;
+    background: #fff;
+    margin: -24px 12px 0;
+    border-radius: 8px;
+    box-shadow: var(--shadow-card);
+    padding: 16px 16px 18px;
+    position: relative;
+    z-index: 1;
+  }
+  .mission-card p {
+    font-size: 14px;
+    line-height: 19px;
+    color: var(--black-primary);
+    margin-bottom: 6px;
+  }
+  .mission-link {
+    color: var(--link-blue);
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  /* ---------- 3. "My Orders & Redemptions" row ---------- */
+  .row-card {
+    margin: 10px 12px 0;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: var(--shadow-card);
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .row-card .gift {
+    width: 28px;
+    height: 28px;
+    flex-shrink: 0;
+    color: var(--black-primary);
+  }
+  .row-card .label {
+    flex: 1;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--black-primary);
+  }
+  .row-card .chev {
+    color: var(--gray-bright);
+    font-size: 18px;
+    line-height: 1;
+  }
+
+  /* ---------- 4. Two balance cards (Poinseru / Voyage Miles) ---------- */
+  .balance-row {
+    display: flex;
+    gap: 8px;
+    margin: 10px 12px 0;
+  }
+  .balance-card {
+    flex: 1;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: var(--shadow-card);
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .balance-card .info {
+    flex: 1;
+    min-width: 0;
+  }
+  .balance-card .name {
+    font-size: 12px;
+    color: var(--gray-bright);
+    font-weight: 400;
+    margin-bottom: 2px;
+  }
+  .balance-card .amount {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--black-primary);
+  }
+  .balance-card .chev {
+    color: var(--gray-bright);
+    font-size: 16px;
+  }
+
+  /* ---------- 5. Refer-a-friend pink banner ---------- */
+  .refer-card {
+    margin: 10px 12px 0;
+    background: var(--pink-warn-bg);
+    border-radius: 8px;
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .refer-card .icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .refer-card .icon svg { width: 22px; height: 22px; color: var(--pink-warn-icon); }
+  .refer-card .text {
+    flex: 1;
+    font-size: 13px;
+    line-height: 17px;
+    color: var(--black-primary);
+  }
+  .refer-card .text b { font-weight: 700; }
+  .refer-card .chev { color: var(--black-primary); font-size: 18px; }
+
+  /* ---------- 6. "Enjoy lots of benefits here" section ---------- */
+  .section-title {
+    margin: 22px 16px 8px;
+    font-size: var(--font-section);
+    font-weight: 800;
+    color: var(--black-primary);
+    letter-spacing: -.3px;
+  }
+
+  .pill-row {
+    display: flex;
+    gap: 8px;
+    margin: 0 16px;
+  }
+  .pill {
+    padding: 10px 22px;
+    border-radius: 22px;
+    font-size: 14px;
+    font-weight: 700;
+    border: 1.5px solid transparent;
+    cursor: pointer;
+  }
+  .pill.gold {
+    background: var(--gold-premier);
+    color: #fff;
+    border-color: var(--gold-premier);
+  }
+  .pill.outline {
+    background: #fff;
+    color: var(--black-primary);
+    border-color: var(--gray-blush);
+  }
+
+  /* tip card (lavender) */
+  .tip-card {
+    margin: 12px 16px 0;
+    background: var(--lavender-tip-bg);
+    border-radius: 8px;
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .tip-card .bell {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .tip-card .bell svg { width: 18px; height: 18px; color: var(--gold-premier); }
+  .tip-card .text {
+    flex: 1;
+    font-size: 13px;
+    line-height: 17px;
+    color: var(--black-primary);
+  }
+  .tip-card .chev { color: var(--black-primary); font-size: 18px; }
+
+  /* services row (Pick Up Service, Medical Check Up) */
+  .services-row {
+    display: flex;
+    gap: 16px;
+    margin: 18px 16px 0;
+  }
+  .service {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    color: var(--gray-disabled);
+  }
+  .service .icon-wrap {
+    position: relative;
+    width: 40px;
+    height: 40px;
+  }
+  .service .icon-wrap svg { width: 100%; height: 100%; color: var(--gray-disabled); }
+  .service .badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #f15c5c;
+    color: #fff;
+    font-size: 9px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+  }
+  .service .name {
+    font-size: 12px;
+    text-align: center;
+    font-weight: 400;
+  }
+
+  /* ---------- 7. "Latest Promos" section ---------- */
+  .promos-header {
+    margin: 22px 16px 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .promos-header .title {
+    font-size: var(--font-section);
+    font-weight: 800;
+    color: var(--black-primary);
+    letter-spacing: -.3px;
+  }
+  .promos-header .see-all {
+    color: var(--link-blue);
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .promos-list {
+    margin: 12px 16px 0;
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+  }
+  .promo-card {
+    flex: 0 0 140px;
+    height: 90px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #f3e7d0 0%, #d9bd8d 100%);
+    position: relative;
+    overflow: hidden;
+  }
+  .promo-card::after {
+    content: "";
+    position: absolute;
+    right: -10px;
+    top: -10px;
+    width: 60px;
+    height: 60px;
+    background: radial-gradient(circle, rgba(255,255,255,.4) 0%, rgba(255,255,255,0) 70%);
+  }
+
+  /* =========================================================
+     BOTTOM NAV (Home / Financial / Scan / Rewards / More)
+     Scan is the elevated circular QRIS FAB. Layout matches
+     recreate-dashboard/dashboard.html: the nav is absolutely
+     pinned to the bottom and the FAB sits half-above, half-in.
+     ========================================================= */
+  .nav-wrap {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: 72px;
+    background: #fff;
+    box-shadow: var(--shadow-nav);
+    display: flex;
+    align-items: stretch;
+    z-index: 10;
+  }
+  /* the FAB notch: a circle of nav-color carved out at the top of the nav bar */
+  .nav-wrap::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 0;
+    width: 64px;
+    height: 32px;
+    transform: translateX(-50%);
+    background: #fff;
+    border-radius: 0 0 32px 32px;
+    z-index: 1;
+  }
+  .nav {
+    display: grid;
+    grid-template-columns: 1fr 1fr 64px 1fr 1fr;
+    width: 100%;
+    height: 100%;
+    position: relative;
+    z-index: 2;
+  }
+  .nav-item {
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: flex-start;
+    gap: 4px;
+    padding-top: 8px;
+    color: var(--gray-mineshaft);
+    text-decoration: none;
+    font-size: 11px;
+  }
+  .nav-item .icon { width: 24px; height: 24px; color: inherit; display: block; }
+  .nav-item .icon svg { width: 100%; height: 100%; }
+  .nav-item.active { color: var(--red-primary); }
+  .nav-item.active .icon { color: var(--red-primary); }
+
+  .fab {
+    position: absolute;
+    left: 50%;
+    top: 12px;
+    transform: translate(-50%, -50%);
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: var(--red-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 10px rgba(227,6,19,.45);
+    z-index: 12;
+  }
+  .fab svg { width: 40px; height: 40px; color: #fff; }
+  .fab .label {
+    position: absolute;
+    bottom: -16px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--gray-mineshaft);
+    white-space: nowrap;
+  }
+
+  /* home indicator (iOS-like) */
+  .home-bar {
+    position: absolute;
+    bottom: 4px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 96px;
+    height: 3px;
+    background: rgba(0,0,0,.25);
+    border-radius: 2px;
+    z-index: 14;
+    pointer-events: none;
+  }
+</style>
+
+  <!-- =========================================================
+       HOSTED-PROTOTYPE WRAPPER — added by prototype/wire-links.py
+       Desktop: 360px phone centered on a neutral page bg.
+       Mobile (≤ 480px): phone fills the screen up to 360px
+       and the page scrolls vertically.
+       ========================================================= -->
+  <style>
+    html, body {
+      background: #ececec;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      width: 360px;
+      margin: 0 auto;
+      display: block;
+    }
+    .phone {
+      width: 360px;
+      height: auto;
+      min-height: 800px;
+    }
+    @media (max-width: 480px) {
+      html, body {
+        background: #fff;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        width: 100vw;
+        max-width: 360px;
+        margin: 0 auto;
+      }
+      .phone {
+        width: 100%;
+        max-width: 360px;
+        box-shadow: none;
+        border-radius: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+<div class="phone">
+
+  <!-- status bar (generic shared chrome — see ../shared/chrome-status-bar.html) -->
+  <div class="status-bar" aria-hidden="true">
+    <span class="status-time">09:59</span>
+    <div class="status-right">
+      <svg class="si-glyph" viewBox="0 0 14 12" aria-hidden="true">
+        <rect x="0"  y="8" width="2" height="4"  fill="currentColor"/>
+        <rect x="4"  y="5" width="2" height="7"  fill="currentColor"/>
+        <rect x="8"  y="2" width="2" height="10" fill="currentColor"/>
+        <rect x="12" y="0" width="2" height="12" fill="currentColor"/>
+      </svg>
+      <svg class="si-glyph" viewBox="0 0 14 12" aria-hidden="true">
+        <path d="M7 11a1.4 1.4 0 100-2.8 1.4 1.4 0 000 2.8zM2.8 6.5a6 6 0 018.4 0l-1 1a4.6 4.6 0 00-6.4 0l-1-1zM.6 4.2a9.2 9.2 0 0112.8 0l-1 1a7.8 7.8 0 00-10.8 0l-1-1z" fill="currentColor"/>
+      </svg>
+      <svg class="si-glyph" viewBox="0 0 22 12" aria-hidden="true">
+        <rect x="0" y="0" width="18" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="1.2"/>
+        <rect x="2" y="2" width="12" height="8"  fill="currentColor"/>
+        <rect x="19" y="3.5" width="2" height="5" rx="0.5" fill="currentColor"/>
+      </svg>
+      <span class="si-pct">80</span>
+    </div>
+  </div>
+
+  <!-- scroll body -->
+  <div class="scroll">
+
+    <!-- 1. banner image + Premier Banking tier card -->
+    <div class="banner">
+      <a class="premier-card" href="#">
+        <span class="premier-icon">
+          <!-- premier banking medallion -->
+          <svg viewBox="0 0 40 40" fill="none">
+            <circle cx="20" cy="20" r="16" stroke="#8a6e44" stroke-width="2"/>
+            <path d="M14 22 Q20 28 26 22" stroke="#8a6e44" stroke-width="2" fill="none" stroke-linecap="round"/>
+            <path d="M20 12 L22 18 L28 18 L23 22 L25 28 L20 24 L15 28 L17 22 L12 18 L18 18 Z" fill="#8a6e44"/>
+          </svg>
+        </span>
+        <span class="premier-title">PREMIER BANKING</span>
+        <span class="premier-see">See Details <span class="chev">›</span></span>
+      </a>
+    </div>
+
+    <!-- 2. Mission card (margin-top clears the banner) -->
+    <a class="mission-card" href="#" style="text-decoration:none;">
+      <p>Explore OCBC rewards program &amp; discover how to earn an abundance of Poinseru.</p>
+      <span class="mission-link">See Mission Now</span>
+    </a>
+
+    <!-- 3. My Orders & Redemptions -->
+    <a class="row-card" href="#" style="text-decoration:none;">
+      <span class="gift">
+        <!-- gift box icon -->
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round">
+          <rect x="3" y="9" width="18" height="12" rx="1.5"/>
+          <line x1="3" y1="14" x2="21" y2="14"/>
+          <line x1="12" y1="9" x2="12" y2="21"/>
+          <path d="M12 9c-2 0-4-1-4-3s2-3 4 0c2-3 4-2 4 0s-2 3-4 3z"/>
+        </svg>
+      </span>
+      <span class="label">My Orders &amp; Redemptions</span>
+      <span class="chev">›</span>
+    </a>
+
+    <!-- 4. Balance cards: Poinseru / Voyage Miles -->
+    <div class="balance-row">
+      <a class="balance-card" href="#" style="text-decoration:none;">
+        <span class="info">
+          <div class="name">Poinseru</div>
+          <div class="amount">38,900</div>
+        </span>
+        <span class="chev">›</span>
+      </a>
+      <a class="balance-card" href="#" style="text-decoration:none;">
+        <span class="info">
+          <div class="name">Voyage Miles</div>
+          <div class="amount">1,077</div>
+        </span>
+        <span class="chev">›</span>
+      </a>
+    </div>
+
+    <!-- 5. Refer-a-friend pink banner -->
+    <a class="refer-card" href="#" style="text-decoration:none;">
+      <span class="icon">
+        <!-- party popper icon -->
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M5.8 11.3 2 22l10.7-3.79"/>
+          <path d="M4 3h.01"/>
+          <path d="M22 8h.01"/>
+          <path d="M15 2h.01"/>
+          <path d="M22 20h.01"/>
+          <path d="M22 2 9.5 14.5l4.5 4.5L22 11"/>
+          <path d="M9 11.5 7.5 13 4 9.5 5.5 8 9 11.5z"/>
+        </svg>
+      </span>
+      <span class="text">Get a reward of up to <b>IDR 1,000,000</b> for each of your friends who join OCBC.</span>
+      <span class="chev">›</span>
+    </a>
+
+    <!-- 6. "Enjoy lots of benefits here" section -->
+    <h2 class="section-title">Enjoy lots of benefits here</h2>
+
+    <div class="pill-row">
+      <a class="pill gold" href="#" style="text-decoration:none;">Beyond Banking</a>
+      <a class="pill outline" href="#" style="text-decoration:none;">Poinseru</a>
+    </div>
+
+    <a class="tip-card" href="#" style="text-decoration:none;">
+      <span class="bell">
+        <!-- bell icon (gold) -->
+        <svg viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 22a2 2 0 0 0 2-2H10a2 2 0 0 0 2 2zm6-6V11a6 6 0 1 0-12 0v5l-2 2v1h16v-1l-2-2z"/>
+        </svg>
+      </span>
+      <span class="text">Choose your Beyond Banking package and enjoy exclusive benefits.</span>
+      <span class="chev">›</span>
+    </a>
+
+    <!-- services row (Pick Up Service, Medical Check Up) -->
+    <div class="services-row">
+      <a class="service" href="#" style="text-decoration:none;">
+        <span class="icon-wrap">
+          <!-- car icon, disabled -->
+          <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round">
+            <path d="M8 32h32v6H8z"/>
+            <path d="M10 26l3-10h22l3 10"/>
+            <circle cx="14" cy="36" r="3" fill="currentColor"/>
+            <circle cx="34" cy="36" r="3" fill="currentColor"/>
+          </svg>
+          <span class="badge">×</span>
+        </span>
+        <span class="name">Pick Up Service</span>
+      </a>
+      <a class="service" href="#" style="text-decoration:none;">
+        <span class="icon-wrap">
+          <!-- medical clipboard -->
+          <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round">
+            <rect x="12" y="10" width="24" height="30" rx="2"/>
+            <rect x="18" y="6" width="12" height="6" rx="1"/>
+            <path d="M20 22h8M20 28h8M20 34h5" stroke-linecap="round"/>
+            <circle cx="33" cy="22" r="3" fill="#7ec1ff" stroke="none"/>
+          </svg>
+        </span>
+        <span class="name">Medical Check Up</span>
+      </a>
+    </div>
+
+    <!-- 7. "Latest Promos" section -->
+    <div class="promos-header">
+      <span class="title">Latest Promos</span>
+      <a class="see-all" href="#">See All</a>
+    </div>
+    <div class="promos-list">
+      <a class="promo-card" href="#"></a>
+      <a class="promo-card" href="#" style="background:linear-gradient(135deg,#ffd5c2 0%,#f4a888 100%);"></a>
+      <a class="promo-card" href="#" style="background:linear-gradient(135deg,#d6e4ff 0%,#9eb8f0 100%);"></a>
+    </div>
+
+  </div><!-- /.scroll -->
+
+  <!-- bottom nav + FAB (matches recreate-dashboard/dashboard.html) -->
+  <div class="nav-wrap">
+    <nav class="nav" aria-label="Primary">
+      <a class="nav-item" href="dashboard.html" style="text-decoration:none;">
+        <span class="icon">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 3l9 8h-3v9h-5v-6H11v6H6v-9H3z" fill="currentColor"/>
+          </svg>
+        </span>
+        <span>Home</span>
+      </a>
+      <a class="nav-item" href="#" style="text-decoration:none;">
+        <span class="icon">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.6"/>
+            <path d="M12 3v18M3 12h18" stroke="currentColor" stroke-width="1.6"/>
+          </svg>
+        </span>
+        <span>Financial</span>
+      </a>
+      <span></span>
+      <a class="nav-item active" href="reward.html" style="text-decoration:none;">
+        <span class="icon">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="3" y="9" width="18" height="13" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.6"/>
+            <path d="M3 13h18M12 9v13" stroke="currentColor" stroke-width="1.6"/>
+            <path d="M12 9c-2 0-3-1-3-3V4h6v2c0 2-1 3-3 3z" fill="currentColor"/>
+          </svg>
+        </span>
+        <span>Rewards</span>
+      </a>
+      <a class="nav-item" href="#" style="text-decoration:none;">
+        <span class="icon">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="6" cy="6" r="2" fill="currentColor"/>
+            <circle cx="18" cy="6" r="2" fill="currentColor"/>
+            <circle cx="6" cy="18" r="2" fill="currentColor"/>
+            <circle cx="18" cy="18" r="2" fill="currentColor"/>
+          </svg>
+        </span>
+        <span>More</span>
+      </a>
+    </nav>
+
+    <!-- QRIS FAB (ic_navbar_mainaction) -->
+    <a class="fab" href="qr-scan.html" role="button" aria-label="Scan QR" style="text-decoration:none;">
+      <svg viewBox="0 0 57 57" aria-hidden="true">
+        <circle cx="28.5" cy="28.5" r="28.5" fill="#e30613"/>
+        <g fill="#fff" font-family="monospace" font-weight="800">
+          <text x="28.5" y="34" text-anchor="middle" font-size="14">QRIS</text>
+        </g>
+        <path d="M14 18h6M14 18v6M43 18h-6M43 18v6M14 39h6M14 39v-6M43 39h-6M43 39v-6"
+              stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/>
+      </svg>
+    </a>
+  </div>
+
+  <div class="home-bar"></div>
+</div>
+</body>
+</html>

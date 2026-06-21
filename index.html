@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OCBC NISP — screen prototypes</title>
+<style>
+  :root {
+    --red-primary:        #e30613;
+    --black-primary:      #202020;
+    --white-primary:      #ffffff;
+    --gray-mineshaft:     #363b40;
+    --gray-bright:        #575d65;
+    --gray-blush:         #eef0f4;
+    --bg-page:            #f3f4f7;
+    --font-family: "Fira Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --font-mini:  14px;
+    --font-body:  16px;
+    --font-head:  18px;
+    --font-display: 28px;
+    --shadow-card: 0 2px 8px rgba(0,0,0,.08);
+    --shadow-card-lg: 0 8px 24px rgba(0,0,0,.12);
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 100%; }
+  body {
+    font-family: var(--font-family);
+    font-size: var(--font-body);
+    color: var(--black-primary);
+    background: var(--bg-page);
+    -webkit-font-smoothing: antialiased;
+  }
+  .header {
+    background: linear-gradient(180deg, #fff 0%, #f7f8fa 100%);
+    border-bottom: 1px solid var(--gray-blush);
+    padding: 36px 24px 32px;
+    text-align: center;
+  }
+  .header h1 {
+    font-size: var(--font-display);
+    font-weight: 800;
+    color: var(--black-primary);
+    letter-spacing: -.5px;
+    margin-bottom: 6px;
+  }
+  .header h1 .accent { color: var(--red-primary); }
+  .header p { color: var(--gray-bright); font-size: var(--font-mini); }
+  .header .meta { margin-top: 10px; font-size: 12px; color: var(--gray-bright); }
+  .header .meta code {
+    background: #fff; padding: 2px 6px; border-radius: 3px;
+    border: 1px solid var(--gray-blush);
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    color: var(--red-primary);
+  }
+  .container { max-width: 1280px; margin: 0 auto; padding: 32px 24px 64px; }
+  .section-title {
+    font-size: var(--font-head); font-weight: 700;
+    color: var(--black-primary); margin-bottom: 16px;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 24px;
+  }
+  .card {
+    background: #fff; border-radius: 12px;
+    box-shadow: var(--shadow-card);
+    overflow: hidden; text-decoration: none; color: inherit;
+    transition: transform .15s ease, box-shadow .15s ease;
+    display: flex; flex-direction: column;
+  }
+  .card:hover { transform: translateY(-2px); box-shadow: var(--shadow-card-lg); }
+  .card .thumb {
+    width: 100%; height: 480px; background: #000;
+    overflow: hidden; display: flex;
+    align-items: flex-start; justify-content: center;
+  }
+  .card .thumb img {
+    width: 216px; height: auto;
+    object-fit: cover; object-position: top;
+  }
+  .card .body { padding: 14px 16px 16px; border-top: 1px solid var(--gray-blush); }
+  .card .body h2 {
+    font-size: 15px; font-weight: 700;
+    color: var(--black-primary); margin-bottom: 4px;
+  }
+  .card .body .activity {
+    font-size: 12px; color: var(--gray-bright);
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    margin-bottom: 4px;
+  }
+  .card .body p { font-size: 12px; color: var(--gray-bright); line-height: 1.5; }
+  .card .open-link {
+    display: inline-block; margin-top: 8px;
+    color: var(--red-primary); font-size: 12px; font-weight: 600;
+  }
+  .footer {
+    border-top: 1px solid var(--gray-blush);
+    padding: 24px; text-align: center;
+    color: var(--gray-bright); font-size: 12px; background: #fff;
+  }
+  .footer a { color: var(--red-primary); text-decoration: none; }
+  .footer a:hover { text-decoration: underline; }
+  @media (max-width: 480px) {
+    .header { padding: 24px 16px 20px; }
+    .header h1 { font-size: 22px; }
+    .container { padding: 20px 16px 40px; }
+    .card .thumb { height: 380px; }
+    .card .thumb img { width: 180px; }
+  }
+</style>
+</head>
+<body>
+<header class="header">
+  <h1>OCBC NISP <span class="accent">screen prototypes</span></h1>
+  <p>Static HTML reproductions of the OCBC NISP mobile app</p>
+  <div class="meta">Branch <code>main</code> · 6 screens · GitHub Pages compatible</div>
+</header>
+<main class="container">
+  <h2 class="section-title">Screens</h2>
+  <div class="grid">
+    <a class="card" href="dashboard.html">
+      <div class="thumb"><img src="_screenshots/dashboard.jpg" alt="Dashboard"></div>
+      <div class="body">
+        <h2>Dashboard (HOME tab)</h2>
+        <div class="activity">DashboardActivity</div>
+        <p>Premier Banking header, quick actions, balance, foreign exchange ticker, banner pager.</p>
+        <span class="open-link">Open →</span>
+      </div>
+    </a>
+    <a class="card" href="investment.html">
+      <div class="thumb"><img src="_screenshots/investment.jpg" alt="Investment"></div>
+      <div class="body">
+        <h2>Investment Overview</h2>
+        <div class="activity">DashboardMenuActivity</div>
+        <p>Investment tab with filter chips, product discovery cards, performance pills.</p>
+        <span class="open-link">Open →</span>
+      </div>
+    </a>
+    <a class="card" href="forex.html">
+      <div class="thumb"><img src="_screenshots/forex.jpg" alt="Forex"></div>
+      <div class="body">
+        <h2>Foreign Exchange</h2>
+        <div class="activity">ForexPageActivity</div>
+        <p>14-currency exchange rates, two tabs (Table list, Graph chart).</p>
+        <span class="open-link">Open →</span>
+      </div>
+    </a>
+    <a class="card" href="qr-scan.html">
+      <div class="thumb"><img src="_screenshots/qr-scan.jpg" alt="QR Scan"></div>
+      <div class="body">
+        <h2>QR Scan</h2>
+        <div class="activity">VisionScanActivity</div>
+        <p>QRIS scanner with green tips, camera preview, Flash/Gallery, Show QR/Receive Transfer.</p>
+        <span class="open-link">Open →</span>
+      </div>
+    </a>
+    <a class="card" href="qr-input.html">
+      <div class="thumb"><img src="_screenshots/qr-input.jpg" alt="QR Input"></div>
+      <div class="body">
+        <h2>QR Input (Pay To)</h2>
+        <div class="activity">PurchaseLandingPageActivity</div>
+        <p>Destination after QR scan. Biller card, amount input, Continue button.</p>
+        <span class="open-link">Open →</span>
+      </div>
+    </a>
+    <a class="card" href="reward.html">
+      <div class="thumb"><img src="_screenshots/reward.jpg" alt="Rewards"></div>
+      <div class="body">
+        <h2>Rewards tab</h2>
+        <div class="activity">DashboardActivity · Rewards</div>
+        <p>Premier Banking tier, balance cards, Beyond Banking benefits, Latest Promos.</p>
+        <span class="open-link">Open →</span>
+      </div>
+    </a>
+  </div>
+  <h2 class="section-title" style="margin-top:48px;">About</h2>
+  <p style="color:var(--gray-bright);font-size:14px;line-height:1.6;max-width:680px;">
+    Each card above opens a 360&times;800dp phone-screen prototype. On a desktop
+    browser the phone is centered on a neutral page background; on a mobile
+    browser the phone fills the screen and scrolls naturally. All in-page
+    links (bottom nav, back arrows, FAB) navigate between screens.
+  </p>
+  <p style="color:var(--gray-bright);font-size:14px;line-height:1.6;max-width:680px;margin-top:12px;">
+    Source files (canonical prototypes, extracted layouts, README files) live
+    in <code>../recreate-*/</code>. Build provenance and link map are in
+    <code>README.md</code>.
+  </p>
+</main>
+<footer class="footer">
+  <a href="../">← back to recreate/</a> · OCBC NISP screen prototypes
+</footer>
+</body>
+</html>

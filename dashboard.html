@@ -1,0 +1,1137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OCBC NISP — Dashboard (HOME tab) — static prototype</title>
+<!--
+  Self-contained prototype. Tokens and shared chrome are also exported
+  to ../shared/ for reuse on future screens. See SHARED.md.
+-->
+<style>
+  /* =========================================================
+     DESIGN TOKENS — canonical source: ../shared/tokens.css
+     Distilled from ocbc_apktool/res/values/{colors,dimens,styles}.xml
+     (1dp = 1px on this 360dp logical canvas; 1sp = 1px)
+     ========================================================= */
+  :root {
+    /* colors (res/values/colors.xml) */
+    --red-primary:        #e30613;
+    --red-dark:           #ba1c18;
+    --black-primary:      #202020;
+    --white-primary:      #ffffff;
+    --gray-bright:        #575d65;   /* icons / borders */
+    --gray-mineshaft:     #363b40;   /* inactive nav label */
+    --default-window-bg:  #ffffff;
+
+    /* dimens (res/values/dimens.xml) — selected */
+    --space-0:    0px;
+    --space-half: 4px;
+    --space-1:    8px;
+    --space-1-5:  12px;
+    --space-2:    16px;
+    --space-3:    24px;
+    --space-4:    32px;
+    --space-7:    56px;     /* FAB image */
+    --space-8:    64px;     /* header inner row */
+    --space-9:    72px;     /* bottom nav */
+    --space-10:   80px;
+    --space-13:   104px;
+
+    --size-1:     1px;
+    --size-10:    10px;
+    --size-90:    90px;     /* quick action cell */
+    --size-100:   100px;    /* pill min-width */
+    --size-106:   106px;    /* header height */
+    --size-196:   196px;    /* quick-action card */
+    --size-254:   254px;    /* quick-action card max */
+    --size-293:   293px;    /* half-circle red height */
+    --size-530:   530px;    /* banner pager height */
+
+    /* typography (res/values/styles.xml + fira_sans) */
+    --font-family: "Fira Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --font-micro:  12px;
+    --font-mini:   14px;
+    --font-body:   16px;
+    --font-head:   20px;
+    --font-display: 28px;
+
+    /* derived */
+    --shadow-card:   0 2px 6px rgba(0,0,0,.10);
+    --shadow-card-lg: 0 6px 16px rgba(0,0,0,.12);
+    --shadow-nav:    0 -2px 6px rgba(0,0,0,.06);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 100%; }
+  body {
+    font-family: var(--font-family);
+    font-size: var(--font-body);
+    color: var(--black-primary);
+    background: #ececec;        /* surrounding page background */
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 0;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* =========================================================
+     PHONE FRAME — 360dp wide × 800dp tall logical canvas
+     ========================================================= */
+  .phone {
+    width: 360px;
+    height: 800px;
+    background: var(--default-window-bg);
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 8px 28px rgba(0,0,0,.18);
+    border-radius: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* =========================================================
+     STATUS BAR — generic Android row (shared across screens)
+     Left: time. Right: signal bars + wifi + battery + pct.
+     ========================================================= */
+  .status-bar {
+    height: 28px;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 14px;
+    font-size: 11px;
+    color: var(--black-primary);
+    flex-shrink: 0;
+    position: relative;
+  }
+  .status-time {
+    font-weight: 600;
+    letter-spacing: .2px;
+    color: var(--black-primary);
+  }
+  .status-right {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    color: var(--black-primary);
+  }
+  .status-right .si-glyph {
+    width: 14px;
+    height: 12px;
+    color: var(--black-primary);
+  }
+  .status-right .si-pct {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--black-primary);
+    padding-left: 2px;
+  }
+
+  /* =========================================================
+     HEADER (DashboardHeaderView, height = 106dp)
+     ========================================================= */
+  .header {
+    height: 106px;
+    background: #fff;
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    padding: 0 16px 16px 16px;
+    z-index: 3;
+    box-shadow: 0 1px 0 rgba(0,0,0,0); /* elevation 8dp ≈ subtle drop */
+  }
+  .header-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 32px;
+    min-width: 100px;
+    padding: 0 8px;
+    border: 1px solid var(--gray-bright);
+    border-radius: 100px;
+    background: transparent;
+    color: var(--black-primary);
+    font-size: var(--font-micro);
+    font-weight: 400;
+    letter-spacing: .3px;
+  }
+  .header-pill .sep { color: var(--gray-bright); font-weight: 300; }
+  .header-pill .poin {
+    width: 16px; height: 16px;
+    color: var(--gray-bright);
+    flex-shrink: 0;
+  }
+  .header-pill .poin-amount { font-weight: 400; color: var(--gray-bright); margin-left: 4px; }
+  .header-icons {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    height: 24px;
+  }
+  .header-icons .ic {
+    width: 24px; height: 24px;
+    color: var(--gray-bright);
+    flex-shrink: 0;
+  }
+  .header-icons .ic .dot {
+    position: absolute;
+    top: 0; right: 0;
+    width: 6px; height: 6px;
+    background: var(--red-primary);
+    border-radius: 50%;
+  }
+  .header-icons .ic { position: relative; }
+  .header-icons .bell .dot { display: block; }
+
+  /* =========================================================
+     SCROLL BODY — sized to fit balance + forex on first view
+     ========================================================= */
+  .scroll {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    background: #fff;
+    position: relative;
+    min-height: 0;
+  }
+
+  /* ---------- promo banner area (ViewPager2 — compressed to fit) */
+  .promo {
+    position: relative;
+    height: 320px;
+    background: transparent;
+  }
+  /* ic_half_circle_red — vector: 40 × 398 viewport; 30×293 in app */
+  .half-circle {
+    position: absolute;
+    top: 32px;
+    left: 0;
+    width: 30px;
+    height: 220px;
+    z-index: 1;
+    pointer-events: none;
+  }
+  .promo-stepper {
+    position: absolute;
+    bottom: 132px;        /* just above the quick-action card */
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 4px;
+    z-index: 4;
+  }
+  .promo-stepper span {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: rgba(0,0,0,.30);
+  }
+  .promo-stepper span.on { background: var(--red-primary); width: 14px; border-radius: 3px; }
+
+  .promo-card {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 320px;
+    padding: 40px 0 0 0;
+    z-index: 2;
+  }
+  .promo-content {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 0 20px;
+  }
+  .promo-text {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding-top: 12px;
+  }
+  .promo-text .line-1,
+  .promo-text .line-2 {
+    font-size: 16px;
+    color: var(--black-primary);
+    font-weight: 400;
+    line-height: 1.3;
+    display: block;
+  }
+  .promo-text .learn {
+    display: inline-block;
+    margin-top: 10px;
+    font-size: 15px;
+    color: #2962ff;
+    font-weight: 400;
+    text-decoration: none;
+  }
+  .promo-illu {
+    width: 150px;
+    height: 240px;
+    flex-shrink: 0;
+    margin-top: 8px;
+    background: linear-gradient(180deg, #f4f6f8 0%, #e7ebef 100%);
+    border-radius: 8px;
+    position: relative;
+    overflow: hidden;
+  }
+  .promo-illu .figure {
+    position: absolute;
+    left: 50%; top: 24px;
+    transform: translateX(-50%);
+    width: 90px; height: 170px;
+    background: #cdd5dd;
+    border-radius: 45px 45px 10px 10px;
+    opacity: .55;
+  }
+  .promo-illu .figure::after {
+    content: "";
+    position: absolute;
+    left: 50%; top: -20px;
+    transform: translateX(-50%);
+    width: 54px; height: 54px;
+    background: #cdd5dd;
+    border-radius: 50%;
+  }
+  .promo-illu .shield {
+    position: absolute;
+    right: 10px; top: 14px;
+    width: 46px; height: 54px;
+    background: var(--red-primary);
+    clip-path: polygon(50% 0, 100% 20%, 100% 60%, 50% 100%, 0 60%, 0 20%);
+    opacity: .85;
+  }
+
+  /* ---------- quick action menu (CardView, ~196-254dp) ------- */
+  .qa-card {
+    position: relative;
+    z-index: 5;
+    margin: -110px 14px 0 14px;     /* sits bottom of banner */
+    background: var(--default-window-bg);
+    border-radius: 14px;
+    height: 196px;
+    box-shadow: var(--shadow-card-lg);
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+  }
+  .qa-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-rows: 90px 90px;
+    gap: 4px;
+  }
+  .qa-tile {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px 4px;
+    border-radius: 10px;
+    color: var(--black-primary);
+    text-decoration: none;
+    text-align: center;
+    min-width: 0;
+  }
+  .qa-tile .icon {
+    width: 34px; height: 34px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--black-primary);
+  }
+  .qa-tile .icon svg { width: 100%; height: 100%; }
+  .qa-tile .label {
+    font-size: 12px;
+    line-height: 1.15;
+    font-weight: 400;
+    color: var(--black-primary);
+    max-width: 100%;
+    overflow: hidden;
+  }
+  .qa-tile.two-line { padding-top: 12px; padding-bottom: 12px; }
+  .qa-tile.two-line .label { line-height: 1.1; }
+
+  /* ---------- active balance card -------------------------- */
+  .balance-card {
+    margin: 10px 12px 0 12px;
+    background: var(--default-window-bg);
+    border-radius: 14px;
+    box-shadow: var(--shadow-card);
+    padding: 14px 18px 16px 18px;
+  }
+  .balance-head {
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .balance-label {
+    display: flex; align-items: center; gap: 6px;
+    color: var(--gray-bright);
+    font-size: 14px;
+    font-weight: 500;
+  }
+  .balance-label .caret {
+    width: 10px; height: 10px;
+    color: var(--gray-bright);
+  }
+  .balance-hide {
+    display: flex; align-items: center; gap: 6px;
+    color: var(--red-primary);
+    font-size: 13px;
+  }
+  .balance-hide .eye {
+    width: 20px; height: 20px;
+    color: var(--red-primary);
+  }
+  .balance-amount {
+    margin-top: 4px;
+    color: var(--black-primary);
+    font-weight: 700;
+    font-size: 24px;
+    line-height: 1.2;
+    letter-spacing: -.2px;
+  }
+  .balance-amount .cents {
+    font-size: 16px;
+    font-weight: 500;
+    vertical-align: super;
+    margin-left: 1px;
+  }
+
+  /* ---------- forex section ------------------------------- */
+  .forex {
+    margin: 16px 12px 0 12px;
+  }
+  .forex-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--black-primary);
+    margin: 8px 4px 12px 4px;
+  }
+  .forex-card {
+    background: #fff;
+    border-radius: 14px;
+    box-shadow: var(--shadow-card);
+    overflow: hidden;
+    position: relative;
+  }
+  .forex-card .head {
+    background: #6f6f6f;
+    color: #fff;
+    padding: 16px 18px;
+    display: flex; align-items: flex-start; justify-content: space-between;
+  }
+  .forex-card .head .text .t1 { font-size: 18px; font-weight: 700; }
+  .forex-card .head .text .t2 { font-size: 13px; font-weight: 400; margin-top: 2px; opacity: .92; }
+  .forex-card .help {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    border: 1.5px solid #fff;
+    color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 700;
+    flex-shrink: 0;
+  }
+  .forex-card .grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    padding: 14px;
+  }
+  .fx-tile {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    border: 1px solid #e6e9f3;
+    border-radius: 10px;
+    padding: 10px 12px;
+    min-height: 64px;
+    min-width: 0;
+    text-decoration: none;
+    color: var(--black-primary);
+    overflow: hidden;
+  }
+  .fx-tile .top {
+    display: flex; align-items: center; gap: 6px;
+    min-width: 0;
+  }
+  .fx-tile .flag {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    overflow: hidden;
+    display: inline-block;
+    line-height: 0;
+  }
+  .fx-tile .flag svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+  .fx-tile .ccy {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--gray-bright);
+    flex-shrink: 0;
+  }
+  .fx-tile .value {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--black-primary);
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .fx-tile .chev {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--red-primary);
+    flex-shrink: 0;
+  }
+  .forex-card .see-all {
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 16px;
+    color: #2962ff;
+    font-size: 14px;
+    font-weight: 500;
+    text-decoration: none;
+    border-top: 1px solid #f0f0f0;
+  }
+  .forex-card .see-all .chev { color: #2962ff; }
+
+  /* ---------- "Things You'd Like" carousel ----------------- */
+  .things {
+    margin: 24px 0 110px 0;   /* bottom space clears the fixed bottom nav */
+  }
+  .things-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--black-primary);
+    margin: 0 16px 12px 16px;
+  }
+  .things-carousel {
+    position: relative;
+    overflow: hidden;
+  }
+  .things-track {
+    display: flex;
+    gap: 12px;
+    padding: 0 16px 16px 16px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+  }
+  .things-track::-webkit-scrollbar { display: none; }
+  .thing-card {
+    flex: 0 0 calc(100% - 70px);
+    max-width: calc(100% - 70px);
+    height: 200px;
+    border-radius: 14px;
+    box-shadow: var(--shadow-card);
+    position: relative;
+    overflow: hidden;
+    scroll-snap-align: start;
+    text-decoration: none;
+    color: var(--black-primary);
+    display: flex;
+    align-items: center;
+  }
+  .thing-card .body {
+    padding: 24px 20px;
+    z-index: 2;
+    max-width: 60%;
+  }
+  .thing-card .body .text {
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 1.3;
+    color: var(--black-primary);
+  }
+  .thing-card .body .cta {
+    display: inline-block;
+    margin-top: 12px;
+    color: #2962ff;
+    font-size: 15px;
+    font-weight: 500;
+  }
+  .thing-card .illu {
+    position: absolute;
+    right: 0; top: 0; bottom: 0;
+    width: 50%;
+    z-index: 1;
+  }
+  .thing-card.life {
+    background: linear-gradient(135deg, #e8f5e0 0%, #fde6e6 60%, #fff 100%);
+  }
+  .thing-card.discover {
+    background: #e8f5e0;
+  }
+  .thing-card .stepper {
+    display: flex; justify-content: center; gap: 6px;
+    margin-top: 12px;
+  }
+  .thing-card .stepper span {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: rgba(0,0,0,.25);
+  }
+  .thing-card .stepper span.on { background: var(--black-primary); }
+  .things-stepper {
+    display: flex; justify-content: center; gap: 6px;
+    margin-top: 4px;
+  }
+  .things-stepper span {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: rgba(0,0,0,.25);
+  }
+  .things-stepper span.on { background: var(--black-primary); width: 14px; border-radius: 3px; }
+
+  /* =========================================================
+     BOTTOM NAV + FAB CRADLE
+     ========================================================= */
+  .nav-wrap {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: 72px;
+    background: #fff;
+    box-shadow: var(--shadow-nav);
+    display: flex;
+    align-items: stretch;
+    z-index: 10;
+  }
+  /* the FAB notch: a circle of nav-color carved out at the top of the nav bar */
+  .nav-wrap::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 0;
+    width: 64px;
+    height: 32px;
+    transform: translateX(-50%);
+    background: #fff;
+    border-radius: 0 0 32px 32px;
+    z-index: 1;
+  }
+  .nav {
+    display: grid;
+    grid-template-columns: 1fr 1fr 64px 1fr 1fr;
+    width: 100%;
+    height: 100%;
+    position: relative;
+    z-index: 2;
+  }
+  .nav-item {
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: flex-start;
+    gap: 4px;
+    padding-top: 8px;
+    color: var(--gray-mineshaft);
+    text-decoration: none;
+    font-size: 11px;
+    position: relative;
+  }
+  .nav-item .icon { width: 24px; height: 24px; color: inherit; display: block; }
+  .nav-item .icon svg { width: 100%; height: 100%; }
+  .nav-item.active { color: var(--red-primary); }
+  .nav-item.active .icon { color: var(--red-primary); }
+
+  .fab {
+    position: absolute;
+    left: 50%;
+    top: 12px;                       /* mostly sits in the nav, slight crown above */
+    transform: translate(-50%, -50%);
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: var(--red-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 10px rgba(227,6,19,.45);
+    z-index: 12;
+  }
+  .fab svg { width: 40px; height: 40px; color: #fff; }
+
+  /* =========================================================
+     INLINE SVG stand-ins
+     ========================================================= */
+  .ic-bell path { fill: currentColor; }
+  .ic-user path { stroke: currentColor; fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+  .ic-tanya path { stroke: currentColor; fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+  .ic-poin path { fill: currentColor; }
+</style>
+
+  <!-- =========================================================
+       HOSTED-PROTOTYPE WRAPPER — added by prototype/wire-links.py
+       Desktop: 360px phone centered on a neutral page bg.
+       Mobile (≤ 480px): phone fills the screen up to 360px
+       and the page scrolls vertically.
+       ========================================================= -->
+  <style>
+    html, body {
+      background: #ececec;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      width: 360px;
+      margin: 0 auto;
+      display: block;
+    }
+    .phone {
+      width: 360px;
+      height: auto;
+      min-height: 800px;
+    }
+    @media (max-width: 480px) {
+      html, body {
+        background: #fff;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        width: 100vw;
+        max-width: 360px;
+        margin: 0 auto;
+      }
+      .phone {
+        width: 100%;
+        max-width: 360px;
+        box-shadow: none;
+        border-radius: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="phone" role="application" aria-label="OCBC NISP dashboard prototype">
+
+    <!-- status bar (generic) -->
+    <div class="status-bar" aria-hidden="true">
+      <span class="status-time">09:14</span>
+      <div class="status-right">
+        <svg class="si-glyph" viewBox="0 0 14 12" aria-hidden="true">
+          <rect x="0"  y="8" width="2" height="4"  fill="currentColor"/>
+          <rect x="4"  y="5" width="2" height="7"  fill="currentColor"/>
+          <rect x="8"  y="2" width="2" height="10" fill="currentColor"/>
+          <rect x="12" y="0" width="2" height="12" fill="currentColor"/>
+        </svg>
+        <svg class="si-glyph" viewBox="0 0 14 12" aria-hidden="true">
+          <path d="M7 11a1.4 1.4 0 100-2.8 1.4 1.4 0 000 2.8zM2.8 6.5a6 6 0 018.4 0l-1 1a4.6 4.6 0 00-6.4 0l-1-1zM.6 4.2a9.2 9.2 0 0112.8 0l-1 1a7.8 7.8 0 00-10.8 0l-1-1z" fill="currentColor"/>
+        </svg>
+        <svg class="si-glyph" viewBox="0 0 22 12" aria-hidden="true">
+          <rect x="0" y="0" width="18" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="1.2"/>
+          <rect x="2" y="2" width="12" height="8"  fill="currentColor"/>
+          <rect x="19" y="3.5" width="2" height="5" rx="0.5" fill="currentColor"/>
+        </svg>
+        <span class="si-pct">80</span>
+      </div>
+    </div>
+
+    <!-- header (DashboardHeaderView) -->
+    <header class="header">
+      <div class="header-pill" aria-label="Premier Banking tier and points">
+        <span class="tier">PREMIER BANKING</span>
+        <span class="sep">|</span>
+        <!-- poin icon (ic_poin_seru_gray) -->
+        <svg class="poin" viewBox="0 0 17 16" aria-hidden="true">
+          <path d="M1.949 8C1.949 4.324 4.939 1.333 8.615 1.333 12.291 1.333 15.282 4.324 15.282 8 15.282 11.675 12.291 14.667 8.615 14.667 4.939 14.667 1.949 11.675 1.949 8ZM3.135 8C3.135 11.021 5.594 13.48 8.615 13.48 11.637 13.48 14.095 11.021 14.095 8 14.095 4.979 11.636 2.52 8.615 2.52 5.595 2.52 3.135 4.979 3.135 8ZM6.701 6.259C6.701 5.089 7.653 4.137 8.823 4.137 9.993 4.137 10.944 5.089 10.944 6.259 10.944 6.93 10.671 7.596 10.101 7.953 9.965 8.038 9.525 8.245 9.525 8.245L8.071 8.947V11.863H6.681L6.701 6.259ZM8.071 7.459C8.567 7.192 8.998 6.943 9.28 6.749 9.441 6.637 9.518 6.458 9.519 6.259 9.519 5.875 9.207 5.562 8.823 5.562 8.438 5.562 8.071 5.875 8.071 6.259V7.459Z" fill-rule="evenodd"/>
+        </svg>
+        <span class="poin-amount">38,900</span>
+      </div>
+      <div class="header-icons">
+        <!-- notification bell (ic_inbox_notification_prelogin) -->
+        <span class="ic bell" title="Notifications">
+          <span class="dot" aria-label="unread"></span>
+          <svg viewBox="0 0 25 25" class="ic-bell" aria-hidden="true">
+            <path d="M20.248 17.342C20.248 17.618 20.024 17.842 19.748 17.842H14.248V18.842C14.248 19.669 13.575 20.342 12.748 20.342 11.921 20.342 11.248 19.669 11.248 18.842V17.842H5.748C5.472 17.842 5.248 17.618 5.248 17.342V16.963L8.248 13.962V9.342C8.248 7.103 9.64 4.842 12.748 4.842 15.856 4.842 17.248 7.103 17.248 9.342V13.962L20.248 16.972V17.342ZM18.748 13.342V9.342C18.748 6.342 16.748 3.342 12.748 3.342 8.748 3.342 6.748 6.342 6.748 9.342V13.342L3.748 16.342V17.342C3.748 18.447 4.644 19.342 5.748 19.342H9.748C9.987 20.759 11.263 21.842 12.748 21.842 14.233 21.842 15.509 20.759 15.748 19.342H19.748C20.852 19.342 21.748 18.447 21.748 17.342V16.342L18.748 13.342Z" fill-rule="evenodd"/>
+          </svg>
+        </span>
+        <!-- profile / tanya (ic_tanya) -->
+        <span class="ic" title="Tanya OCBC">
+          <svg viewBox="0 0 24 24" class="ic-tanya" aria-hidden="true">
+            <path d="M19.231 21H4.769C3.956 21 3.428 20.145 3.791 19.418 4.532 17.936 6.046 17 7.703 17H8.168C8.719 17 9.266 17.089 9.789 17.263L9.982 17.327C11.292 17.764 12.708 17.764 14.018 17.327L14.211 17.263C14.733 17.089 15.281 17 15.832 17H16.297C17.954 17 19.468 17.936 20.209 19.418 20.572 20.145 20.044 21 19.231 21Z"/>
+            <path d="M14.646 12C15.476 11.267 16 10.195 16 9 16 6.791 14.209 5 12 5 9.791 5 8 6.791 8 9 8 10.195 8.524 11.267 9.354 12"/>
+            <path d="M5 9C5 5.134 8.134 2 12 2 15.866 2 19 5.134 19 9V9.5C19 12.538 16.538 15 13.5 15M13.5 15H11C10.724 15 10.5 14.776 10.5 14.5 10.5 14.224 10.724 14 11 14H12.5C13.052 14 13.5 14.448 13.5 15Z"/>
+          </svg>
+        </span>
+      </div>
+    </header>
+
+    <!-- scroll body -->
+    <main class="scroll">
+
+      <!-- promo banner (ViewPager2 area, 530dp tall) -->
+      <section class="promo" aria-label="Promotional banner">
+        <!-- half-circle red (ic_half_circle_red) -->
+        <svg class="half-circle" viewBox="0 0 40 398.15" preserveAspectRatio="none" aria-hidden="true">
+          <path d="M0 0v398.15C26.31 334.44 39.9 267.48 40 199.84v-1.54C39.9 130.68 26.31 63.71 0 0Z" fill="#e30613" fill-rule="evenodd"/>
+        </svg>
+
+        <div class="promo-card">
+          <div class="promo-content">
+            <div class="promo-text">
+              <span class="line-1">Be wary against digital scam and</span>
+              <span class="line-2">protect your personal data.</span>
+              <a class="learn" href="#">Learn More</a>
+            </div>
+            <div class="promo-illu" aria-label="Banner illustration placeholder">
+              <div class="shield" aria-hidden="true"></div>
+              <div class="figure" aria-hidden="true"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- stepper dots above quick-action card -->
+        <div class="promo-stepper" aria-hidden="true">
+          <span class="on"></span><span></span><span></span>
+        </div>
+      </section>
+
+      <!-- quick action card -->
+      <section class="qa-card" aria-label="Quick actions">
+        <div class="qa-grid">
+          <!-- 1 Transfer -->
+          <a class="qa-tile" href="#">
+            <span class="icon">
+              <svg viewBox="0 0 32 32" aria-hidden="true">
+                <path d="M6 10h16l-4-4 1.4-1.4L26 11l-6.6 6.4L18 16l4-4H6z" fill="currentColor"/>
+                <path d="M26 22H10l4 4-1.4 1.4L6 21l6.6-6.4L14 16l-4 4h16z" fill="currentColor"/>
+              </svg>
+            </span>
+            <span class="label">Transfer</span>
+          </a>
+          <!-- 2 Top Up & Pay -->
+          <a class="qa-tile two-line" href="#">
+            <span class="icon">
+              <svg viewBox="0 0 32 32" aria-hidden="true">
+                <rect x="4" y="6" width="22" height="20" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/>
+                <path d="M9 13h12M9 17h8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+                <circle cx="22" cy="20" r="2.4" fill="currentColor"/>
+                <text x="22" y="22" text-anchor="middle" font-size="3" fill="#fff" font-family="sans-serif" font-weight="700">Rp</text>
+              </svg>
+            </span>
+            <span class="label">Top Up &amp;<br/>Pay</span>
+          </a>
+          <!-- 3 Investment -->
+          <a class="qa-tile" href="investment.html">
+            <span class="icon">
+              <svg viewBox="0 0 32 32" aria-hidden="true">
+                <path d="M16 4C12 8 8 10 8 16a8 8 0 0016 0c0-6-4-8-8-12z" fill="currentColor"/>
+                <text x="16" y="14" text-anchor="middle" font-size="6" fill="#fff" font-family="sans-serif" font-weight="700">Rp</text>
+              </svg>
+            </span>
+            <span class="label">Investment</span>
+          </a>
+          <!-- 4 Request Money -->
+          <a class="qa-tile two-line" href="#">
+            <span class="icon">
+              <svg viewBox="0 0 32 32" aria-hidden="true">
+                <path d="M6 22c0-7 5-12 10-12s10 5 10 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+                <path d="M16 18v8M12 22l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                <text x="22" y="14" text-anchor="middle" font-size="4" fill="currentColor" font-family="sans-serif" font-weight="700">Rp</text>
+              </svg>
+            </span>
+            <span class="label">Request<br>Money</span>
+          </a>
+          <!-- 5 e-Commerce -->
+          <a class="qa-tile" href="#">
+            <span class="icon">
+              <svg viewBox="0 0 32 32" aria-hidden="true">
+                <path d="M8 12h16l-1.5 12H9.5z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+                <path d="M12 12V9a4 4 0 018 0v3" fill="none" stroke="currentColor" stroke-width="1.6"/>
+                <text x="16" y="22" text-anchor="middle" font-size="4" fill="currentColor" font-family="sans-serif" font-weight="700">Rp</text>
+              </svg>
+            </span>
+            <span class="label">e-Commerce</span>
+          </a>
+          <!-- 6 All Menus -->
+          <a class="qa-tile" href="#">
+            <span class="icon">
+              <svg viewBox="0 0 32 32" aria-hidden="true">
+                <circle cx="10" cy="10" r="3" fill="currentColor"/>
+                <circle cx="22" cy="10" r="3" fill="currentColor"/>
+                <circle cx="10" cy="22" r="3" fill="currentColor"/>
+                <circle cx="22" cy="22" r="3" fill="currentColor"/>
+              </svg>
+            </span>
+            <span class="label">All Menus</span>
+          </a>
+        </div>
+      </section>
+
+      <!-- active balance card -->
+      <section class="balance-card" aria-label="Active balance">
+        <div class="balance-head">
+          <div class="balance-label">
+            <span>Active Balance - IDR</span>
+            <svg class="caret" viewBox="0 0 10 10" aria-hidden="true">
+              <path d="M1 3l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <div class="balance-hide">
+            <span>Hide</span>
+            <svg class="eye" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z" fill="none" stroke="currentColor" stroke-width="1.6"/>
+              <circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.6"/>
+              <path d="M5 5l14 14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+            </svg>
+          </div>
+        </div>
+        <div class="balance-amount">192,695,465<span class="cents">.40</span></div>
+      </section>
+
+      <!-- foreign exchange -->
+      <section class="forex" aria-label="Foreign exchange">
+        <h2 class="forex-title">Foreign Exchange</h2>
+        <div class="forex-card">
+          <div class="head">
+            <div class="text">
+              <div class="t1">Bank Sell Rate</div>
+              <div class="t2">Indicative prices in IDR</div>
+            </div>
+            <div class="help" aria-label="Help">?</div>
+          </div>
+          <div class="grid">
+            <a class="fx-tile" href="#">
+              <span class="top">
+                <span class="flag" aria-hidden="true">
+                  <!-- US flag -->
+                  <svg viewBox="0 0 22 22">
+                    <rect width="22" height="22" rx="11" fill="#bd2334"/>
+                    <rect y="2" width="22" height="1.7" fill="#fff"/>
+                    <rect y="5.4" width="22" height="1.7" fill="#fff"/>
+                    <rect y="8.8" width="22" height="1.7" fill="#fff"/>
+                    <rect y="12.2" width="22" height="1.7" fill="#fff"/>
+                    <rect y="15.6" width="22" height="1.7" fill="#fff"/>
+                    <rect y="19" width="22" height="1.7" fill="#fff"/>
+                    <rect width="9" height="8" fill="#1f3989"/>
+                  </svg>
+                </span>
+                <span class="ccy">USD</span>
+              </span>
+              <span class="value">17,837</span>
+              <svg class="chev" viewBox="0 0 12 12" width="10" height="10" aria-hidden="true">
+                <path d="M3 2l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </a>
+            <a class="fx-tile" href="#">
+              <span class="top">
+                <span class="flag" aria-hidden="true">
+                  <!-- EU flag -->
+                  <svg viewBox="0 0 22 22">
+                    <rect width="22" height="22" rx="11" fill="#003399"/>
+                    <g fill="#ffd400">
+                      <circle cx="11" cy="3"  r=".7"/>
+                      <circle cx="14.6" cy="4.2"  r=".7"/>
+                      <circle cx="17" cy="7"  r=".7"/>
+                      <circle cx="18" cy="11"  r=".7"/>
+                      <circle cx="17" cy="15"  r=".7"/>
+                      <circle cx="14.6" cy="17.8" r=".7"/>
+                      <circle cx="11" cy="19" r=".7"/>
+                      <circle cx="7.4" cy="17.8" r=".7"/>
+                      <circle cx="5" cy="15"  r=".7"/>
+                      <circle cx="4" cy="11"  r=".7"/>
+                      <circle cx="5" cy="7"  r=".7"/>
+                      <circle cx="7.4" cy="4.2"  r=".7"/>
+                    </g>
+                  </svg>
+                </span>
+                <span class="ccy">EUR</span>
+              </span>
+              <span class="value">20,488</span>
+              <svg class="chev" viewBox="0 0 12 12" width="10" height="10" aria-hidden="true">
+                <path d="M3 2l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </a>
+            <a class="fx-tile" href="#">
+              <span class="top">
+                <span class="flag" aria-hidden="true">
+                  <!-- UK flag (Union Jack, simplified) -->
+                  <svg viewBox="0 0 22 22">
+                    <rect width="22" height="22" rx="11" fill="#012169"/>
+                    <path d="M0 0 L22 22 M22 0 L0 22" stroke="#fff" stroke-width="3"/>
+                    <path d="M0 0 L22 22 M22 0 L0 22" stroke="#C8102E" stroke-width="1.5"/>
+                    <path d="M11 0 V22 M0 11 H22" stroke="#fff" stroke-width="4"/>
+                    <path d="M11 0 V22 M0 11 H22" stroke="#C8102E" stroke-width="2"/>
+                  </svg>
+                </span>
+                <span class="ccy">GBP</span>
+              </span>
+              <span class="value">23,662</span>
+              <svg class="chev" viewBox="0 0 12 12" width="10" height="10" aria-hidden="true">
+                <path d="M3 2l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </a>
+            <a class="fx-tile" href="#">
+              <span class="top">
+                <span class="flag" aria-hidden="true">
+                  <!-- AU flag -->
+                  <svg viewBox="0 0 22 22">
+                    <rect width="22" height="22" rx="11" fill="#012169"/>
+                    <rect width="11" height="11" fill="#012169"/>
+                    <path d="M0 0 L11 11 M11 0 L0 11" stroke="#fff" stroke-width="1.8"/>
+                    <path d="M5.5 0 V11 M0 5.5 H11" stroke="#fff" stroke-width="2"/>
+                    <path d="M5.5 0 V11 M0 5.5 H11" stroke="#C8102E" stroke-width="1"/>
+                    <g fill="#fff">
+                      <circle cx="15" cy="6" r=".5"/>
+                      <circle cx="17" cy="9" r=".5"/>
+                      <circle cx="14" cy="11" r=".5"/>
+                      <circle cx="18" cy="13" r=".5"/>
+                      <circle cx="15" cy="15" r=".5"/>
+                      <circle cx="17" cy="17" r=".5"/>
+                    </g>
+                  </svg>
+                </span>
+                <span class="ccy">AUD</span>
+              </span>
+              <span class="value">12,555</span>
+              <svg class="chev" viewBox="0 0 12 12" width="10" height="10" aria-hidden="true">
+                <path d="M3 2l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </a>
+            <a class="fx-tile" href="#">
+              <span class="top">
+                <span class="flag" aria-hidden="true">
+                  <!-- HK flag -->
+                  <svg viewBox="0 0 22 22">
+                    <rect width="22" height="22" rx="11" fill="#bb133e"/>
+                    <g transform="translate(11 11)" fill="#fff">
+                      <path d="M-3 -2.5 a2.5 2.5 0 1 0 3 2.5 a1.5 1.5 0 1 1 -3 -2.5 z"/>
+                    </g>
+                  </svg>
+                </span>
+                <span class="ccy">HKD</span>
+              </span>
+              <span class="value">2,284.57</span>
+              <svg class="chev" viewBox="0 0 12 12" width="10" height="10" aria-hidden="true">
+                <path d="M3 2l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </a>
+            <a class="fx-tile" href="#">
+              <span class="top">
+                <span class="flag" aria-hidden="true">
+                  <!-- JP flag -->
+                  <svg viewBox="0 0 22 22">
+                    <rect width="22" height="22" rx="11" fill="#fff" stroke="#ddd" stroke-width=".4"/>
+                    <circle cx="11" cy="11" r="5.5" fill="#bc002d"/>
+                  </svg>
+                </span>
+                <span class="ccy">JPY</span>
+              </span>
+              <span class="value">110.86</span>
+              <svg class="chev" viewBox="0 0 12 12" width="10" height="10" aria-hidden="true">
+                <path d="M3 2l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </a>
+          </div>
+          <a class="see-all" href="#">
+            See All
+            <svg class="chev" viewBox="0 0 12 12" width="12" height="12" aria-hidden="true">
+              <path d="M3 2l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </a>
+        </div>
+      </section>
+
+      <!-- things you'd like carousel -->
+      <section class="things" aria-label="Things you'd like">
+        <h2 class="things-title">Things You'd Like</h2>
+        <div class="things-carousel">
+          <div class="things-track">
+            <a class="thing-card life" href="#">
+              <div class="body">
+                <div class="text">An easy way to achieve your financial goals with Life Goals</div>
+                <span class="cta">Get Started</span>
+              </div>
+              <svg class="illu" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+                <circle cx="62" cy="50" r="35" fill="#f8c8c0" opacity=".8"/>
+                <circle cx="62" cy="50" r="24" fill="#e85a4a"/>
+                <circle cx="62" cy="50" r="14" fill="#fff"/>
+                <circle cx="62" cy="50" r="6"  fill="#e85a4a"/>
+                <circle cx="40" cy="40" r="8" fill="#3d2b1f"/>
+                <path d="M30 80 Q40 60 55 70 L55 100 L25 100 Z" fill="#1f5f3a"/>
+                <path d="M55 70 Q72 60 82 80 L82 100 L55 100 Z" fill="#fff" opacity=".9"/>
+              </svg>
+            </a>
+            <a class="thing-card discover" href="#">
+              <div class="body">
+                <div class="text">Discover the right financial products for you</div>
+                <span class="cta">Find Out</span>
+              </div>
+              <svg class="illu" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+                <circle cx="60" cy="50" r="30" fill="#cde6c1"/>
+                <rect x="40" y="40" width="40" height="28" rx="4" fill="#fff" opacity=".7"/>
+              </svg>
+            </a>
+          </div>
+        </div>
+        <div class="things-stepper" aria-hidden="true">
+          <span class="on"></span><span></span>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- bottom nav + FAB -->
+    <div class="nav-wrap">
+      <nav class="nav" aria-label="Primary">
+        <a class="nav-item active" href="#">
+          <span class="icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 3l9 8h-3v9h-5v-6H11v6H6v-9H3z" fill="currentColor"/>
+            </svg>
+          </span>
+          <span>Home</span>
+        </a>
+        <a class="nav-item" href="#">
+          <span class="icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.6"/>
+              <path d="M12 3v18M3 12h18" stroke="currentColor" stroke-width="1.6"/>
+            </svg>
+          </span>
+          <span>Financial</span>
+        </a>
+        <span><!-- spacer for FAB cradle --></span>
+        <a class="nav-item" href="reward.html">
+          <span class="icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="3" y="9" width="18" height="13" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.6"/>
+              <path d="M3 13h18M12 9v13" stroke="currentColor" stroke-width="1.6"/>
+              <path d="M12 9c-2 0-3-1-3-3V4h6v2c0 2-1 3-3 3z" fill="currentColor"/>
+            </svg>
+          </span>
+          <span>Rewards</span>
+        </a>
+        <a class="nav-item" href="#">
+          <span class="icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="6" cy="6" r="2" fill="currentColor"/>
+              <circle cx="18" cy="6" r="2" fill="currentColor"/>
+              <circle cx="6" cy="18" r="2" fill="currentColor"/>
+              <circle cx="18" cy="18" r="2" fill="currentColor"/>
+            </svg>
+          </span>
+          <span>More</span>
+        </a>
+      </nav>
+
+      <!-- QRIS FAB (ic_navbar_mainaction) -->
+      <a class="fab" role="button" aria-label="Scan QR" href="qr-scan.html">
+        <svg viewBox="0 0 57 57" aria-hidden="true">
+          <circle cx="28.5" cy="28.5" r="28.5" fill="#e30613"/>
+          <g fill="#fff" font-family="monospace" font-weight="800">
+            <text x="28.5" y="34" text-anchor="middle" font-size="14">QRIS</text>
+          </g>
+          <!-- decorative scan frame -->
+          <path d="M14 18h6M14 18v6M43 18h-6M43 18v6M14 39h6M14 39v-6M43 39h-6M43 39v-6"
+                stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/>
+        </svg>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
