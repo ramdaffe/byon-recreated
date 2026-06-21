@@ -17,12 +17,20 @@ TARGET = Path(__file__).resolve().parent
 
 WIRING = [
     ("dashboard.html", ROOT / "recreate-dashboard" / "dashboard.html", [
+        # bottom-nav "Rewards" tile
         ('<a class="nav-item" href="#">\n          <span class="icon">\n            <svg viewBox="0 0 24 24" aria-hidden="true">\n              <rect x="3" y="9" width="18" height="13" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.6"/>\n              <path d="M3 13h18M12 9v13" stroke="currentColor" stroke-width="1.6"/>\n              <path d="M12 9c-2 0-3-1-3-3V4h6v2c0 2-1 3-3 3z" fill="currentColor"/>\n            </svg>\n          </span>\n          <span>Rewards</span>',
          '<a class="nav-item" href="reward.html">\n          <span class="icon">\n            <svg viewBox="0 0 24 24" aria-hidden="true">\n              <rect x="3" y="9" width="18" height="13" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.6"/>\n              <path d="M3 13h18M12 9v13" stroke="currentColor" stroke-width="1.6"/>\n              <path d="M12 9c-2 0-3-1-3-3V4h6v2c0 2-1 3-3 3z" fill="currentColor"/>\n            </svg>\n          </span>\n          <span>Rewards</span>'),
-        ('<div class="fab" role="button" aria-label="Scan QR">',
-         '<a class="fab" role="button" aria-label="Scan QR" href="qr-scan.html">'),
+        # NOTE: the top-fab div->a rewrite was REMOVED — we don't want a
+        # second QRIS button on the dashboard. The bottom-nav cradle is enough.
+        # Investment quick-action tile (3rd tile)
         ('<!-- 3 Investment -->\n          <a class="qa-tile" href="#">\n            <span class="icon">\n              <svg viewBox="0 0 32 32" aria-hidden="true">\n                <path d="M16 4C12 8 8 10 8 16a8 8 0 0016 0c0-6-4-8-8-12z" fill="currentColor"/>\n                <text x="16" y="14" text-anchor="middle" font-size="6" fill="#fff" font-family="sans-serif" font-weight="700">Rp</text>\n              </svg>\n            </span>\n            <span class="label">Investment</span>\n          </a>',
          '<!-- 3 Investment -->\n          <a class="qa-tile" href="investment.html">\n            <span class="icon">\n              <svg viewBox="0 0 32 32" aria-hidden="true">\n                <path d="M16 4C12 8 8 10 8 16a8 8 0 0016 0c0-6-4-8-8-12z" fill="currentColor"/>\n                <text x="16" y="14" text-anchor="middle" font-size="6" fill="#fff" font-family="sans-serif" font-weight="700">Rp</text>\n              </svg>\n            </span>\n            <span class="label">Investment</span>\n          </a>'),
+        # Forex widget — "See All" goes to the Forex page (Table tab, default)
+        ('          <a class="see-all" href="#">\n            See All\n            <svg class="chev" viewBox="0 0 12 12" width="12" height="12" aria-hidden="true">\n              <path d="M3 2l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>\n            </svg>\n          </a>',
+         '          <a class="see-all" href="forex.html">\n            See All\n            <svg class="chev" viewBox="0 0 12 12" width="12" height="12" aria-hidden="true">\n              <path d="M3 2l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>\n            </svg>\n          </a>'),
+        # Forex widget — USD price pill goes to the Graph tab
+        ('          <div class="grid">\n            <a class="fx-tile" href="#">\n              <span class="top">\n                <span class="flag" aria-hidden="true">\n                  <!-- US flag -->\n                  <svg viewBox="0 0 22 22">',
+         '          <div class="grid">\n            <a class="fx-tile" href="forex.html?tab=graph">\n              <span class="top">\n                <span class="flag" aria-hidden="true">\n                  <!-- US flag -->\n                  <svg viewBox="0 0 22 22">'),
     ]),
     ("investment.html", ROOT / "recreate-investment" / "investment.html", [
         ('<a class="toolbar-back" href="#" aria-label="Back">',
