@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=360, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>OCBC NISP — Top Up &amp; Pay — static prototype</title>
 <!--
   Self-contained prototype. Tokens and shared chrome are also exported
@@ -271,7 +271,48 @@
     z-index: 5;
     pointer-events: none;
   }
-</style>
+
+  <!-- =========================================================
+       HOSTED-PROTOTYPE WRAPPER
+       Desktop: 360px phone centered on a neutral page bg.
+       Mobile (≤ 480px): phone fills the screen up to 360px
+       and the page scrolls vertically.
+       ========================================================= -->
+  <style>
+    html, body {
+      background: #ececec;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      width: 360px;
+      margin: 0 auto;
+      display: block;
+    }
+    .phone {
+      width: 360px;
+      height: auto;
+      min-height: 800px;
+    }
+    @media (max-width: 480px) {
+      html, body {
+        background: #fff;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        width: 100vw;
+        max-width: 360px;
+        margin: 0 auto;
+      }
+      .phone {
+        width: 100%;
+        max-width: 360px;
+        box-shadow: none;
+        border-radius: 0;
+      }
+    }
+  </style>
 </head>
 <body>
 <div class="phone">
