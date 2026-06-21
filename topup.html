@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=360, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>OCBC NISP — Top Up &amp; Pay — static prototype</title>
+<!--
+  Self-contained prototype. Tokens and shared chrome are also exported
+  to ../shared/ for reuse on future screens. See SHARED.md.
+
+  Source: screenshot/topup_1.jpg + screenshot/topup_2.jpg
+  Build:   pure-vision — no layout/decompiled source used.
+           The "Top Up & Pay" page in this app version shows a
+           scrollable grid of biller categories, served from a
+           remote backend. The visible content is reproduced
+           verbatim from the screenshot.
+
+  Visible structure (top → bottom):
+    1. shared status bar (time 19:38, battery 31%)
+    2. white toolbar: red < back, "Top Up & Pay" centered
+    3. search bar: "Search electricity, pulsa, or other biller…"
+    4. Category: "Top Up"
+       - Electronic Money
+       - e-Voucher & Game
+    5. Category: "Telecommunication"
+       - Mobile Credit
+       - Data Package
+       - Mobile Postpaid
+       - Telkom
+    6. Category: "Household Utilities"
+       - Electricity
+       - Electricity Token
+       - Water
+       - Internet/TV Cable
+       - IPL
+    7. Category: "Financial"
+       - Credit Card
+       - Insurance
+       - OCBC e-Invoice
+    8. Category: "Public & Social Services"
+       - Tax Payment
+       - PBB
+       - BPJS
+       - DKI Jakarta Tax
+       - Education
+       - Zakat & Donation
+    9. Category: "Others"
+       - Virtual Account
+       - KAI
+       - e-Commerce
+       - Other Payment
+-->
+<style>
+  :root {
+    --red-primary:        #e30613;
+    --black-primary:      #202020;
+    --white-primary:      #ffffff;
+    --black-medium:       #80838b;
+    --gray-bright:        #575d65;
+    --gray-blush:         #eef0f4;
+    --gray-pale:          #f5f5f7;
+    --red-icon:           #ea2f2a;
+
+    --space-0:  0px;
+    --space-half: 4px;
+    --space-1:  8px;
+    --space-1-5: 12px;
+    --space-2:  16px;
+    --space-3:  24px;
+    --space-4:  32px;
+
+    --size-1:  1px;
+    --size-2:  2px;
+    --size-44: 44px;
+    --size-72: 72px;        /* tile */
+
+    --font-family: "Fira Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --font-nano:  10px;
+    --font-micro: 12px;
+    --font-mini:  14px;
+    --font-body:  16px;
+    --font-head:  18px;
+
+    --shadow-card: 0 2px 6px rgba(0,0,0,.06);
+    --shadow-card-lg: 0 4px 12px rgba(0,0,0,.08);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 100%; }
+  a { text-decoration: none; color: inherit; }
+  body {
+    font-family: var(--font-family);
+    font-size: var(--font-body);
+    color: var(--black-primary);
+    background: #ececec;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* =========================================================
+     PHONE FRAME — 360×800dp
+     ========================================================= */
+  .phone {
+    width: 360px;
+    height: 800px;
+    background: var(--white-primary);
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 8px 28px rgba(0,0,0,.18);
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* =========================================================
+     STATUS BAR (generic shared chrome)
+     ========================================================= */
+  .status-bar {
+    height: 28px;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 14px;
+    font-size: 11px;
+    color: var(--black-primary);
+    flex-shrink: 0;
+    position: relative;
+  }
+  .status-time { font-weight: 600; letter-spacing: .2px; }
+  .status-right { display: flex; align-items: center; gap: 5px; }
+  .status-right .si-glyph { width: 14px; height: 12px; color: var(--black-primary); }
+  .status-right .si-pct { font-size: 10px; font-weight: 600; padding-left: 2px; }
+
+  /* =========================================================
+     TOOLBAR (BaseToolbarActivity, white)
+     Red < back, centered "Top Up & Pay" title.
+     ========================================================= */
+  .toolbar {
+    height: 48px;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    flex-shrink: 0;
+    z-index: 3;
+  }
+  .toolbar .back {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 24px;
+    height: 24px;
+    color: var(--red-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+  }
+  .toolbar .title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--black-primary);
+  }
+
+  /* =========================================================
+     SCROLL CONTENT
+     ========================================================= */
+  .scroll {
+    flex: 1;
+    overflow-y: auto;
+    background: #fff;
+    padding: 0 0 24px 0;
+  }
+
+  /* ---------- Search bar ---------- */
+  .search {
+    margin: 14px 16px 18px;
+    height: 48px;
+    background: #fff;
+    border: 1.5px solid var(--gray-blush);
+    border-radius: 8px;
+    box-shadow: 0 1px 2px rgba(0,0,0,.04);
+    display: flex;
+    align-items: center;
+    padding: 0 14px;
+    gap: 10px;
+  }
+  .search .icon {
+    width: 18px;
+    height: 18px;
+    color: var(--red-primary);
+    flex-shrink: 0;
+  }
+  .search .placeholder {
+    color: var(--black-medium);
+    font-size: 13px;
+    font-weight: 400;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* ---------- Category section ---------- */
+  .category {
+    margin: 0 0 18px 0;
+  }
+  .category .title {
+    font-size: 16px;
+    font-weight: 800;
+    color: var(--black-primary);
+    margin: 0 16px 12px;
+    letter-spacing: -.2px;
+  }
+  .category .grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0 0;
+    padding: 0 8px;
+  }
+  .tile {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 4px;
+    color: var(--black-primary);
+    text-decoration: none;
+    cursor: pointer;
+  }
+  .tile .icon-wrap {
+    width: 56px;
+    height: 56px;
+    background: #fff;
+    border: 1.5px solid var(--gray-blush);
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 1px 3px rgba(0,0,0,.04);
+    transition: transform .15s ease;
+  }
+  .tile:hover .icon-wrap { transform: scale(1.04); }
+  .tile .icon-wrap svg {
+    width: 30px;
+    height: 30px;
+    color: var(--black-primary);
+  }
+  .tile .icon-wrap svg .accent { color: var(--red-icon); }
+  .tile .label {
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--black-primary);
+    line-height: 1.2;
+    text-align: center;
+    max-width: 72px;
+  }
+
+  /* =========================================================
+     HOME INDICATOR
+     ========================================================= */
+  .home-bar {
+    position: absolute;
+    bottom: 4px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 96px;
+    height: 3px;
+    background: rgba(0,0,0,.25);
+    border-radius: 2px;
+    z-index: 5;
+    pointer-events: none;
+  }
+</style>
+</head>
+<body>
+<div class="phone">
+
+  <!-- status bar (generic shared chrome — see ../shared/chrome-status-bar.html) -->
+  <div class="status-bar" aria-hidden="true">
+    <span class="status-time">19:38</span>
+    <div class="status-right">
+      <svg class="si-glyph" viewBox="0 0 14 12" aria-hidden="true">
+        <rect x="0"  y="8" width="2" height="4"  fill="currentColor"/>
+        <rect x="4"  y="5" width="2" height="7"  fill="currentColor"/>
+        <rect x="8"  y="2" width="2" height="10" fill="currentColor"/>
+        <rect x="12" y="0" width="2" height="12" fill="currentColor"/>
+      </svg>
+      <svg class="si-glyph" viewBox="0 0 14 12" aria-hidden="true">
+        <path d="M7 11a1.4 1.4 0 100-2.8 1.4 1.4 0 000 2.8zM2.8 6.5a6 6 0 018.4 0l-1 1a4.6 4.6 0 00-6.4 0l-1-1zM.6 4.2a9.2 9.2 0 0112.8 0l-1 1a7.8 7.8 0 00-10.8 0l-1-1z" fill="currentColor"/>
+      </svg>
+      <svg class="si-glyph" viewBox="0 0 22 12" aria-hidden="true">
+        <rect x="0" y="0" width="18" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="1.2"/>
+        <rect x="2" y="2" width="12" height="8"  fill="currentColor"/>
+        <rect x="19" y="3.5" width="2" height="5" rx="0.5" fill="currentColor"/>
+      </svg>
+      <span class="si-pct">31</span>
+    </div>
+  </div>
+
+  <!-- toolbar -->
+  <div class="toolbar">
+    <a href="dashboard.html" class="back" aria-label="Back">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="15 18 9 12 15 6"/>
+      </svg>
+    </a>
+    <span class="title">Top Up &amp; Pay</span>
+  </div>
+
+  <!-- scroll -->
+  <div class="scroll">
+
+    <!-- Search bar -->
+    <div class="search">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="11" cy="11" r="7"/>
+        <line x1="16.5" y1="16.5" x2="21" y2="21"/>
+      </svg>
+      <span class="placeholder">Search electricity, pulsa, or other biller…</span>
+    </div>
+
+    <!-- Top Up -->
+    <section class="category">
+      <h2 class="title">Top Up</h2>
+      <div class="grid">
+        <a class="tile" href="#">
+          <span class="icon-wrap">
+            <!-- Electronic Money: wallet with red top edge -->
+            <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round">
+              <rect x="4" y="9" width="24" height="17" rx="2.5"/>
+              <path d="M4 13h24" stroke-linecap="round"/>
+              <path d="M4 9c0-2 2-3 3-3h2" stroke-linecap="round" stroke="red"/>
+              <circle cx="22" cy="19.5" r="1.4" fill="currentColor" stroke="none"/>
+            </svg>
+          </span>
+          <span class="label">Electronic<br/>Money</span>
+        </a>
+        <a class="tile" href="#">
+          <span class="icon-wrap">
+            <!-- e-Voucher & Game: phone with screen and red play triangle -->
+            <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round">
+              <rect x="9" y="5" width="14" height="22" rx="2.5"/>
+              <rect x="11" y="8" width="10" height="13" rx="1" fill="none"/>
+              <circle cx="16" cy="23.5" r="0.8" fill="currentColor" stroke="none"/>
+              <polygon points="14 11 21 14.5 14 18" fill="#ea2f2a" stroke="#ea2f2a" stroke-width="0.6" stroke-linejoin="round"/>
+            </svg>
+          </span>
+          <span class="label">e-Voucher &amp;<br/>Game</span>
+        </a>
+      </div>
+    </section>
+
+    <!-- Telecommunication -->
+    <section class="category">
+      <h2 class="title">Telecommunication</h2>
+      <div class="grid">
+        <a class="tile" href="#">
+          <span class="icon-wrap">
+            <!-- Mobile Credit: phone with Rp coin -->
+            <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round">
+              <rect x="9" y="5" width="14" height="22" rx="2.5"/>
+              <rect x="11" y="8" width="10" height="13" rx="1"/>
+              <circle cx="16" cy="23.5" r="0.8" fill="currentColor" stroke="none"/>
+              <circle cx="22" cy="9" r="3" fill="#ea2f2a" stroke="#ea2f2a" stroke-width="0.5"/>
+              <text x="22" y="11" text-anchor="middle" font-family="Arial,sans-serif" font-size="3.6" font-weight="900" fill="#fff">Rp</text>
+            </svg>
+          </span>
+          <span class="label">Mobile<br/>Credit</span>
+        </a>
+        <a class="tile" href="#">
+          <span class="icon-wrap">
+            <!-- Data Package: phone with circular refresh arrow -->
+            <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round">
+              <rect x="9" y="5" width="14" height="22" rx="2.5"/>
+              <rect x="11" y="8" width="10" height="13" rx="1"/>
+              <circle cx="16" cy="23.5" r="0.8" fill="currentColor" stroke="none"/>
+              <path d="M19 12.5a4 4 0 1 0 -.3 3.5" stroke="#ea2f2a" stroke-width="1.6"/>
+              <polyline points="19 10 19 12.5 16.5 12.5" stroke="#ea2f2a" stroke-width="1.6"/>
+            </svg>
+          </span>
+          <span class="label">Data<br/>Package</span>
+        </a>
+        <a class="tile" href="#">
+          <span class="icon-wrap">
+            <!-- Mobile Postpaid: phone with signal bars -->
+            <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round">
+              <rect x="9" y="5" width="14" height="22" rx="2.5"/>
+              <rect x="11" y="8" width="10" height="13" rx="1"/>
+              <circle cx="16" cy="23.5" r="0.8" fill="currentColor" stroke="none"/>
+              <rect x="13.5" y="14" width="1.2" height="2" fill="#ea2f2a" stroke="none"/>
+              <rect x="15.5" y="13" width="1.2" height="3" fill="#ea2f2a" stroke="none"/>
+              <rect x="17.5" y="11.5" width="1.2" height="4.5" fill="#ea2f2a" stroke="none"/>
+            </svg>
+          </span>
+          <span class="label">Mobile<br/>Postpaid</span>
+        </a>
+        <a class="tile" href="#">
+          <span class="icon-wrap">
+            <!-- Telkom: phone handset -->
+            <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round">
+              <path d="M9 11c0-3 2.5-5 5.5-5s5.5 2 5.5 5c0 2-1 3-2 4l1.5 4c.3 1-.5 2-1.5 2h-7c-1 0-1.8-1-1.5-2L11 15c-1-1-2-2-2-4z" fill="none"/>
+              <path d="M11.5 12.5c.5-.5 1-1.5 1-2.5" stroke="#ea2f2a"/>
+              <path d="M19 9c1.5 0 2.5 1 2.5 2.5" stroke="#ea2f2a"/>
+            </svg>
+          </span>
+          <span class="label">Telkom</span>
+        </a>
+      </div>
+    </section>
+
+    <!-- Household Utilities -->
+    <section class="category">
+      <h2 class="title">Household Utilities</h2>
+      <div class="grid">
+        <a class="tile" href="#">
+          <span class="icon-wrap">
+            <!-- Electricity: receipt/bill with lightning -->
+            <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round">
+              <path d="M8 5h12l4 4v18a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z"/>
+              <path d="M20 5v4h4"/>
+              <polygon points="14 14 18 14 15.5 18 18 18 13 24 15 19 12 19" fill="#ea2f2a" stroke="#ea2f2a" stroke-width="0.4" stroke-linejoin="round"/>
+            </svg>
+          </span>
+          <span class="label">Electricity</span>
+        </a>
+        <a class="tile" href="#">
+          <span class="icon-wrap">
+            <!-- Electricity Token: lightning bolt with red line -->
+            <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round">
+              <polygon points="18 4 10 18 15 18 12 28 24 12 17 12" fill="none" stroke="currentColor" stroke-width="1.6"/>
+              <line x1="9" y1="6" x2="6" y2="22" stroke="#ea2f2a" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </span>
+          <span class="label">Electricity<br/>Token</span>
+        </a>
+        <a class="tile" href="#">
+          <span class="icon-wrap">
+            <!-- Water: water drop -->
+            <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round">
+              <path d="M16 5c-3 5-7 9-7 14a7 7 0 0 0 14 0c0-5-4-9-7-14z"/>
+              <circle cx="12" cy="11" r="2" fill="#ea2f2a" stroke="none"/>
+            </svg>
+          </span>
+          <span class="label">Water</span>
+        </a>
+        <a class="tile" href="#">
+          <span class="icon-wrap">
+            <!-- Internet/TV Cable: router/modem with wifi -->
+            <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round">
+              <rect x="5" y="20" width="22" height="7" rx="1.5"/>
+              <circle cx="11" cy="23.5" r="0.8" fill="currentColor" stroke="none"/>
+              <circle cx="14" cy="23.5" r="0.8" fill="currentColor" stroke="none"/>
+              <path d="M11 16c2-2 8-2 10 0" stroke="#ea2f2a" stroke-width="1.6"/>
+              <path d="M13 12.5c1.5-1.5 4.5-1.5 6 0" stroke="#ea2f2a" stroke-width="1.6"/>
+            </svg>
+          </span>
+          <span class="label">Internet/TV<br/>Cable</span>
+        </a>
+        <a class="tile" href="#">
+          <span class="icon-wrap">
+            <!-- IPL: house with red roof -->
+            <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round">
+              <path d="M5 16L16 6l11 10" fill="none"/>
+              <path d="M5 16L16 6l11 10" stroke="#ea2f2a" stroke-width="2.4"/>
+              <path d="M7 15v12h18V15"/>
+              <rect x="13" y="20" width="6" height="7"/>
+            </svg>
+          </span>
+          <span class="label">IPL</span>
+        </a>
+      </div>
+    </section>
+
+    <!-- Financial -->
+    <section class="category">
+      <h2 class="title">Financial</h2>
+      <div class="grid">
+        <a class="tile" href="#">
+          <span class="icon-wrap">
+            <!-- Credit Card -->
+            <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round">
+              <rect x="4" y="9" width="24" height="15" rx="2"/>
+              <line x1="4" y1="14" x2="28" y2="14"/>
+              <ellipse cx="11" cy="19" rx="3" ry="1.5" stroke="none" fill="#ea2f2a"/>
+            </svg>
+          </span>
+          <span class="label">Credit Card</span>
+        </a>
+        <a class="tile" href="#">
+          <span class="icon-wrap">
+            <!-- Insurance: heart with plus -->
+            <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round">
+              <path d="M16 26C9 21 4 17 4 12a5 5 0 0 1 10-2 5 5 0 0 1 10 2c0 5-5 9-8 14z" fill="none"/>
+              <path d="M16 11v8M12 15h8" stroke="#ea2f2a" stroke-width="1.6" stroke-linecap="round"/>
+            </svg>
+          </span>
+          <span class="label">Insurance</span>
+        </a>
+        <a class="tile" href="#">
+          <span class="icon-wrap">
+            <!-- OCBC e-Invoice: document with Rp coin -->
+            <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round">
+              <path d="M7 5h13l5 5v17a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z"/>
+              <path d="M20 5v5h5"/>
+              <line x1="9" y1="14" x2="20" y2="14"/>
+              <line x1="9" y1="18" x2="20" y2="18"/>
+              <circle cx="22" cy="22" r="3.2" fill="#ea2f2a" stroke="#ea2f2a"/>
+              <text x="22" y="24" text-anchor="middle" font-family="Arial,sans-serif" font-size="3.6" font-weight="900" fill="#fff">Rp</text>
+            </svg>
+          </span>
+          <span class="label">OCBC<br/>e-Invoice</span>
+        </a>
+      </div>
+    </section>
+
+    <!-- Public & Social Services -->
+    <section class="category">
+      <h2 class="title">Public &amp; Social Services</h2>
+      <div class="grid">
+        <a class="tile" href="#">
+          <span class="icon-wrap">
+            <!-- Tax Payment: tag with arrows -->
+            <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round">
+              <path d="M6 8h16l4 4v14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V8z" fill="none"/>
+              <path d="M22 8v4h4"/>
+              <line x1="10" y1="15" x2="18" y2="15"/>
+              <path d="M11 18l-3 3 3 3M19 18l3 3-3 3" stroke="#ea2f2a" stroke-width="1.6"/>
+            </svg>
+          </span>
+          <span class="label">Tax Payment</span>
+        </a>
+        <a class="tile" href="#">
+          <span class="icon-wrap">
+            <!-- PBB: house with % -->
+            <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round">
+              <path d="M5 16L16 6l11 10"/>
+              <path d="M7 15v12h18V15"/>
+              <circle cx="19" cy="11" r="3.5" fill="#ea2f2a" stroke="#ea2f2a"/>
+              <text x="19" y="13" text-anchor="middle" font-family="Arial,sans-serif" font-size="4.5" font-weight="900" fill="#fff">%</text>
+            </svg>
+          </span>
+          <span class="label">PBB</span>
+        </a>
+        <a class="tile" href="#">
+          <span class="icon-wrap">
+            <!-- BPJS: shield with cross -->
+            <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round">
+              <path d="M16 5l9 4v7c0 6-4 9-9 11-5-2-9-5-9-11V9l9-4z" fill="none"/>
+              <circle cx="16" cy="16" r="3.5" stroke="#ea2f2a" stroke-width="1.6"/>
+              <path d="M16 12.5v7M12.5 16h7" stroke="#ea2f2a" stroke-width="1.6" stroke-linecap="round"/>
+            </svg>
+          </span>
+          <span class="label">BPJS</span>
+        </a>
+        <a class="tile" href="#">
+          <span class="icon-wrap">
+            <!-- DKI Jakarta Tax: candle with flame -->
+            <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round">
+              <rect x="13" y="14" width="6" height="14"/>
+              <line x1="11" y1="20" x2="21" y2="20"/>
+              <path d="M16 14c-2-3-1-5 0-7 0 2 2 2 2 4 1-1 1-2 1-3 2 2 2 5-1 6z" fill="#ea2f2a" stroke="#ea2f2a" stroke-width="0.4"/>
+            </svg>
+          </span>
+          <span class="label">DKI Jakarta<br/>Tax</span>
+        </a>
+        <a class="tile" href="#">
+          <span class="icon-wrap">
+            <!-- Education: graduation cap with tassel -->
+            <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round">
+              <path d="M3 14l13-5 13 5-13 5-13-5z"/>
+              <path d="M8 16v6c0 2 4 4 8 4s8-2 8-4v-6"/>
+              <line x1="26" y1="14" x2="26" y2="22" stroke="#ea2f2a" stroke-width="1.6"/>
+              <circle cx="26" cy="23" r="0.8" fill="#ea2f2a" stroke="none"/>
+            </svg>
+          </span>
+          <span class="label">Education</span>
+        </a>
+        <a class="tile" href="#">
+          <span class="icon-wrap">
+            <!-- Zakat & Donation: briefcase with Rp coin -->
+            <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round">
+              <rect x="4" y="11" width="24" height="16" rx="2"/>
+              <path d="M11 11V8a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v3"/>
+              <line x1="4" y1="17" x2="28" y2="17"/>
+              <circle cx="22" cy="22" r="3" fill="#ea2f2a" stroke="#ea2f2a"/>
+              <text x="22" y="23.7" text-anchor="middle" font-family="Arial,sans-serif" font-size="3.4" font-weight="900" fill="#fff">Rp</text>
+            </svg>
+          </span>
+          <span class="label">Zakat &amp;<br/>Donation</span>
+        </a>
+      </div>
+    </section>
+
+    <!-- Others -->
+    <section class="category">
+      <h2 class="title">Others</h2>
+      <div class="grid">
+        <a class="tile" href="#">
+          <span class="icon-wrap">
+            <!-- Virtual Account: card with red top edge -->
+            <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round">
+              <rect x="4" y="8" width="24" height="16" rx="2"/>
+              <rect x="4" y="8" width="24" height="4" fill="#ea2f2a" stroke="#ea2f2a"/>
+              <line x1="9" y1="17" x2="15" y2="17"/>
+              <line x1="9" y1="20" x2="13" y2="20"/>
+            </svg>
+          </span>
+          <span class="label">Virtual<br/>Account</span>
+        </a>
+        <a class="tile" href="#">
+          <span class="icon-wrap">
+            <!-- KAI: train -->
+            <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round">
+              <rect x="6" y="6" width="20" height="18" rx="3"/>
+              <line x1="6" y1="13" x2="26" y2="13"/>
+              <rect x="9" y="9" width="3" height="2.5" fill="none"/>
+              <rect x="14" y="9" width="3" height="2.5" fill="none"/>
+              <rect x="19" y="9" width="3" height="2.5" fill="none"/>
+              <circle cx="11" cy="20" r="1.5" fill="#ea2f2a" stroke="none"/>
+              <circle cx="21" cy="20" r="1.5" fill="#ea2f2a" stroke="none"/>
+            </svg>
+          </span>
+          <span class="label">KAI</span>
+        </a>
+        <a class="tile" href="#">
+          <span class="icon-wrap">
+            <!-- e-Commerce: shopping cart with Rp coin -->
+            <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round">
+              <path d="M5 6h3l2 12h14l2-8H10"/>
+              <circle cx="13" cy="25" r="1.5"/>
+              <circle cx="22" cy="25" r="1.5"/>
+              <circle cx="22" cy="12" r="3" fill="#ea2f2a" stroke="#ea2f2a"/>
+              <text x="22" y="13.7" text-anchor="middle" font-family="Arial,sans-serif" font-size="3.4" font-weight="900" fill="#fff">Rp</text>
+            </svg>
+          </span>
+          <span class="label">e-Commerce</span>
+        </a>
+        <a class="tile" href="#">
+          <span class="icon-wrap">
+            <!-- Other Payment: document with lines -->
+            <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round">
+              <path d="M7 5h13l5 5v17a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z"/>
+              <path d="M20 5v5h5"/>
+              <line x1="9" y1="14" x2="20" y2="14" stroke="#ea2f2a" stroke-width="1.6"/>
+              <line x1="9" y1="18" x2="20" y2="18" stroke="#ea2f2a" stroke-width="1.6"/>
+              <line x1="9" y1="22" x2="16" y2="22" stroke="#ea2f2a" stroke-width="1.6"/>
+            </svg>
+          </span>
+          <span class="label">Other<br/>Payment</span>
+        </a>
+      </div>
+    </section>
+
+  </div><!-- /.scroll -->
+
+  <div class="home-bar"></div>
+</div>
+</body>
+</html>

@@ -13,9 +13,10 @@ prototype/
 ├── forex.html                   ← ForexPageActivity · Table + Graph tabs
 ├── qr-scan.html                 ← VisionScanActivity
 ├── qr-input.html                ← PurchaseLandingPageActivity · Pay To
+├── topup.html                   ← DashboardMenuActivity · Top Up & Pay
 ├── reward.html                  ← DashboardActivity · Rewards tab
-├── _screenshots/                ← thumbnails used by the index grid
-├── wire-links.py                ← re-builds the 6 pages from canonical sources
+├── thumbs/                ← thumbnails used by the index grid
+├── wire-links.py                ← re-builds the 7 pages from canonical sources
 └── README.md                    ← this file
 ```
 
@@ -46,10 +47,12 @@ thumbnails linking to the 6 screens.
 | `index` | forex thumbnail | `forex.html` |
 | `index` | qr-scan thumbnail | `qr-scan.html` |
 | `index` | qr-input thumbnail | `qr-input.html` |
+| `index` | topup thumbnail | `topup.html` |
 | `index` | reward thumbnail | `reward.html` |
 | `dashboard` | bottom-nav "Rewards" | `reward.html` |
 | `dashboard` | bottom-nav QRIS FAB | `qr-scan.html` |
 | `dashboard` | "Investment" tile | `investment.html` |
+| `dashboard` | "Top Up & Pay" tile | `topup.html` |
 | `investment` | toolbar ← back | `dashboard.html` |
 | `forex` | toolbar ← back | `dashboard.html` |
 | `qr-scan` | × close | `dashboard.html` |

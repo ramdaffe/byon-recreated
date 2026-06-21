@@ -31,6 +31,9 @@ WIRING = [
         # Forex widget — USD price pill goes to the Graph tab
         ('          <div class="grid">\n            <a class="fx-tile" href="#">\n              <span class="top">\n                <span class="flag" aria-hidden="true">\n                  <!-- US flag -->\n                  <svg viewBox="0 0 22 22">',
          '          <div class="grid">\n            <a class="fx-tile" href="forex.html?tab=graph">\n              <span class="top">\n                <span class="flag" aria-hidden="true">\n                  <!-- US flag -->\n                  <svg viewBox="0 0 22 22">'),
+        # Top Up & Pay tile -> topup.html
+        ('<!-- 2 Top Up & Pay -->\n          <a class="qa-tile two-line" href="#">',
+         '<!-- 2 Top Up & Pay -->\n          <a class="qa-tile two-line" href="topup.html">'),
     ]),
     ("investment.html", ROOT / "recreate-investment" / "investment.html", [
         ('<a class="toolbar-back" href="#" aria-label="Back">',
@@ -146,6 +149,15 @@ def main():
 
         target.write_text(src)
         print(f"  built {rel}  ({len(src):,} bytes)")
+
+    # Copy the pure-vision topup page (it's not generated from a
+    # canonical source — it's a static HTML that reproduces a
+    # screenshot; the source files live in ../recreate-topup/).
+    topup_src = ROOT.parent / "recreate-topup" / "topup.html"
+    if topup_src.exists():
+        target = TARGET / "topup.html"
+        target.write_text(topup_src.read_text())
+        print(f"  copied topup.html  ({target.stat().st_size:,} bytes)")
 
     print("\nDone.")
 
